@@ -98,8 +98,7 @@ let step (h: i64) (w: i64) (cells: *[h][w]cell): *[h][w]cell =
                 then let (y_next, x_next) = (y + cell.along_axis.y, x + cell.along_axis.x)
                      in if in_bounds h w y_next x_next
                         then let cell_next = cells[y_next, x_next]
-                             in if (cell_next.underlying.flow_y != 0 || cell_next.underlying.flow_x != 0) &&
-                                   is_occupied cell_next
+                             in if cell_next.underlying.flow_y != 0 || cell_next.underlying.flow_x != 0
                                 then (cell_next.can_be_moved_to_from.calculated,
                                       ((cell.along_axis.y != 0 && cell_next.can_be_moved_to_from.flow_y) ||
                                        (cell.along_axis.x != 0 && cell_next.can_be_moved_to_from.flow_x)))
