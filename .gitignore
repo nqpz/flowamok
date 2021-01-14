@@ -1,0 +1,6 @@
+/lib
+/*.c
+/*.o
+/*.h
+/flowamok_wrapper.fut
+/flowamok
