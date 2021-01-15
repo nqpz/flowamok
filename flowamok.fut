@@ -6,51 +6,49 @@ module dist_i8 = uniform_int_distribution i8 rnge
 module dist_f32 = uniform_real_distribution f32 rnge
 type rng = rnge.rng
 
--- FIXME: i64 is larger than it needs to for many of the cases below.
-type flow = i64 -- -1 or +1
+type flow = i8 -- -1 or +1
 
-type direction =
-  {y: flow, x: flow}
+type direction 'base =
+  {y: base, x: base}
 
 type underlying =
   {rng: rng,
-   flow_y: flow,
-   flow_x: flow}
+   direction: direction flow}
 
 type can_be_moved_to_from =
   {calculated: bool,
-   flow_y: bool,
-   flow_x: bool,
+   direction: direction bool,
    next_preference_flow_x: bool}
 
 type cell =
   {underlying: underlying,
+   direction: direction flow,
    color: argb.colour,
-   along_axis: direction,
    can_be_moved_to_from: can_be_moved_to_from}
 
-let empty_direction: direction =
-  {y=0, x=0}
+let empty_direction 'base (empty: base): direction base =
+  {y=empty, x=empty}
 
 let create_underlying (rng: rng): underlying =
   {rng=rng,
-   flow_y=0,
-   flow_x=0}
+   direction=empty_direction 0}
 
 let empty_can_be_moved_to_from: can_be_moved_to_from =
   {calculated=false,
-   flow_y=false,
-   flow_x=false,
+   direction=empty_direction false,
    next_preference_flow_x=false}
 
 let create_cell (rng: rng): cell =
   {underlying=create_underlying rng,
+   direction=empty_direction 0,
    color=argb.white,
-   along_axis=empty_direction,
    can_be_moved_to_from=empty_can_be_moved_to_from}
 
+let has_underlying (cell: cell): bool =
+  cell.underlying.direction.y != 0 || cell.underlying.direction.x != 0
+
 let is_occupied (cell: cell): bool =
-  cell.along_axis.y != 0 || cell.along_axis.x != 0
+  cell.direction.y != 0 || cell.direction.x != 0
 
 let flatten_coordinate (w: i64) (y: i64) (x: i64): i64 =
   y * w + x
@@ -71,7 +69,7 @@ let add_line_vertical [h] [w] (y_start: i64) (y_end: i64) (x: i64) (flow: flow) 
   let n = y_end - y_start + 1
   let cells' = flatten cells
   let indexes = map (\t -> flatten_coordinate w (y_start + t) x) (0..<n)
-  let values = map (\i -> cells'[i] with underlying.flow_y = flow) indexes
+  let values = map (\i -> cells'[i] with underlying.direction.y = flow) indexes
   in unflatten h w (scatter cells' indexes values)
 
 let add_line_horizontal [h] [w] (y: i64) (x_start: i64) (x_end: i64) (flow: flow) (cells: *[h][w]cell):
@@ -79,12 +77,12 @@ let add_line_horizontal [h] [w] (y: i64) (x_start: i64) (x_end: i64) (flow: flow
   let n = x_end - x_start + 1
   let cells' = flatten cells
   let indexes = map (\t -> flatten_coordinate w y (x_start + t)) (0..<n)
-  let values = map (\i -> cells'[i] with underlying.flow_x = flow) indexes
+  let values = map (\i -> cells'[i] with underlying.direction.x = flow) indexes
   in unflatten h w (scatter cells' indexes values)
 
-let add_cell [h] [w] (y: i64) (x: i64) (color: argb.colour) (along_axis: direction) (cells: *[h][w]cell): *[h][w]cell =
+let add_cell [h] [w] (y: i64) (x: i64) (color: argb.colour) (direction: direction flow) (cells: *[h][w]cell): *[h][w]cell =
   let cell = cells[y, x] with color = color
-                         with along_axis = along_axis
+                         with direction = direction
   in cells with [y, x] = copy cell
 
 let step (h: i64) (w: i64) (cells: *[h][w]cell): *[h][w]cell =
@@ -95,28 +93,28 @@ let step (h: i64) (w: i64) (cells: *[h][w]cell): *[h][w]cell =
          then cell
          else let (can_be_moved_to_from_calculated, can_be_moved_to_from_base) =
                 if is_occupied cell
-                then let (y_next, x_next) = (y + cell.along_axis.y, x + cell.along_axis.x)
+                then let (y_next, x_next) = (y + i64.i8 cell.direction.y, x + i64.i8 cell.direction.x)
                      in if in_bounds h w y_next x_next
                         then let cell_next = cells[y_next, x_next]
-                             in if cell_next.underlying.flow_y != 0 || cell_next.underlying.flow_x != 0
+                             in if has_underlying cell_next
                                 then (cell_next.can_be_moved_to_from.calculated,
-                                      ((cell.along_axis.y != 0 && cell_next.can_be_moved_to_from.flow_y) ||
-                                       (cell.along_axis.x != 0 && cell_next.can_be_moved_to_from.flow_x)))
+                                      ((cell.direction.y != 0 && cell_next.can_be_moved_to_from.direction.y) ||
+                                       (cell.direction.x != 0 && cell_next.can_be_moved_to_from.direction.x)))
                                 else (true, true)
                         else (true, true)
                 else (true, true)
               in if can_be_moved_to_from_calculated
                  then let cell = cell with can_be_moved_to_from.calculated = true
                       in if can_be_moved_to_from_base
-                         then if cell.underlying.flow_y != 0 || cell.underlying.flow_x != 0
-                              then let y_prev = y - cell.underlying.flow_y
-                                   let x_prev = x - cell.underlying.flow_x
-                                   let cell_prev_y_occupied = cell.underlying.flow_y != 0 &&
+                         then if has_underlying cell
+                              then let y_prev = y - i64.i8 cell.underlying.direction.y
+                                   let x_prev = x - i64.i8 cell.underlying.direction.x
+                                   let cell_prev_y_occupied = cell.underlying.direction.y != 0 &&
                                                               in_bounds h w y_prev x &&
-                                                              cells[y_prev, x].along_axis.y != 0
-                                   let cell_prev_x_occupied = cell.underlying.flow_x != 0 &&
+                                                              cells[y_prev, x].direction.y != 0
+                                   let cell_prev_x_occupied = cell.underlying.direction.x != 0 &&
                                                               in_bounds h w y x_prev &&
-                                                              cells[y, x_prev].along_axis.x != 0
+                                                              cells[y, x_prev].direction.x != 0
                                    let (flow_y, flow_x, next_preference_flow_x) =
                                      match (cell_prev_y_occupied, cell_prev_x_occupied, cell.can_be_moved_to_from.next_preference_flow_x)
                                      case (_, true, true) -> (false, true, false)
@@ -124,12 +122,12 @@ let step (h: i64) (w: i64) (cells: *[h][w]cell): *[h][w]cell =
                                      case (true, false, true) -> (true, false, true)
                                      case (false, true, false) -> (false, true, false)
                                      case (false, false, b) -> (false, false, b)
-                                   in cell with can_be_moved_to_from.flow_y = flow_y
-                                           with can_be_moved_to_from.flow_x = flow_x
+                                   in cell with can_be_moved_to_from.direction.y = flow_y
+                                           with can_be_moved_to_from.direction.x = flow_x
                                            with can_be_moved_to_from.next_preference_flow_x = next_preference_flow_x
                               else -- Accept "leaks" of cells into nothingness.
-                                cell with can_be_moved_to_from.flow_y = true
-                                     with can_be_moved_to_from.flow_x = true
+                                cell with can_be_moved_to_from.direction.y = true
+                                     with can_be_moved_to_from.direction.x = true
                          else cell
                  else cell
 
@@ -148,60 +146,60 @@ let step (h: i64) (w: i64) (cells: *[h][w]cell): *[h][w]cell =
 
   let move_cell (y: i64) (x: i64): cell =
     let cell = cells[y, x]
-    in if cell.can_be_moved_to_from.flow_y || cell.can_be_moved_to_from.flow_x
-       then let (y_prev, x_prev) = if cell.can_be_moved_to_from.flow_y
-                                   then (y - cell.underlying.flow_y, x)
-                                   else (y, x - cell.underlying.flow_x)
+    in if cell.can_be_moved_to_from.direction.y || cell.can_be_moved_to_from.direction.x
+       then let (y_prev, x_prev) = if cell.can_be_moved_to_from.direction.y
+                                   then (y - i64.i8 cell.underlying.direction.y, x)
+                                   else (y, x - i64.i8 cell.underlying.direction.x)
             in if in_bounds h w y_prev x_prev
                then let cell_prev = cells[y_prev, x_prev]
                     let (flow_y_ok, flow_y_ok_isolated) =
-                      if cell.underlying.flow_y != 0 &&
-                         in_bounds h w (y + cell.underlying.flow_y) x
-                      then let cell_next = cells[y + cell.underlying.flow_y, x]
-                           let ok_base = cell_next.underlying.flow_y == cell.underlying.flow_y
+                      if cell.underlying.direction.y != 0 &&
+                         in_bounds h w (y + i64.i8 cell.underlying.direction.y) x
+                      then let cell_next = cells[y + i64.i8 cell.underlying.direction.y, x]
+                           let ok_base = cell_next.underlying.direction.y == cell.underlying.direction.y
                            in (ok_base, ok_base ||
-                                        (cell_next.underlying.flow_y == 0 && cell_next.underlying.flow_x == 0))
+                                        (cell_next.underlying.direction.y == 0 && cell_next.underlying.direction.x == 0))
                       else (false, false)
                     let (flow_x_ok, flow_x_ok_isolated) =
-                      if cell.underlying.flow_x != 0 &&
-                         in_bounds h w y (x + cell.underlying.flow_x)
-                      then let cell_next = cells[y, x + cell.underlying.flow_x]
-                           let ok_base = cell_next.underlying.flow_x == cell.underlying.flow_x
+                      if cell.underlying.direction.x != 0 &&
+                         in_bounds h w y (x + i64.i8 cell.underlying.direction.x)
+                      then let cell_next = cells[y, x + i64.i8 cell.underlying.direction.x]
+                           let ok_base = cell_next.underlying.direction.x == cell.underlying.direction.x
                            in (ok_base, ok_base ||
-                                        (cell_next.underlying.flow_y == 0 && cell_next.underlying.flow_x == 0))
+                                        (cell_next.underlying.direction.y == 0 && cell_next.underlying.direction.x == 0))
                       else (false, false)
-                    let (rng, along_axis) =
+                    let (rng, direction) =
                       if flow_y_ok && flow_x_ok
                       then let (rng, choice) = dist_i8.rand (0, 1) cell.underlying.rng
                            -- FIXME: Better pathfinder than randomness
                            in (rng, if choice == 0
-                                    then {y=cell.underlying.flow_y, x=0}
-                                    else {y=0, x=cell.underlying.flow_x})
+                                    then {y=cell.underlying.direction.y, x=0}
+                                    else {y=0, x=cell.underlying.direction.x})
                       else if !flow_x_ok && flow_y_ok_isolated
-                      then (cell.underlying.rng, {y=cell.underlying.flow_y, x=0})
+                      then (cell.underlying.rng, {y=cell.underlying.direction.y, x=0})
                       else if !flow_y_ok && flow_x_ok_isolated
-                      then (cell.underlying.rng, {y=0, x=cell.underlying.flow_x})
-                      else (cell.underlying.rng, empty_direction) -- is this possible?
+                      then (cell.underlying.rng, {y=0, x=cell.underlying.direction.x})
+                      else (cell.underlying.rng, empty_direction 0) -- is this possible?
                     in cell with color = cell_prev.color
-                            with along_axis = along_axis
+                            with direction = direction
                             with underlying.rng = rng
                else cell
-       else let (y_next, x_next) = (y + cell.along_axis.y, x + cell.along_axis.x)
+       else let (y_next, x_next) = (y + i64.i8 cell.direction.y, x + i64.i8 cell.direction.x)
             in if in_bounds h w y_next x_next
                then let cell_next = cells[y_next, x_next]
-                    in if (cell_next.can_be_moved_to_from.flow_y && cell.along_axis.y != 0) ||
-                          (cell_next.can_be_moved_to_from.flow_x && cell.along_axis.x != 0)
-                       then cell with along_axis = empty_direction
+                    in if (cell_next.can_be_moved_to_from.direction.y && cell.direction.y != 0) ||
+                          (cell_next.can_be_moved_to_from.direction.x && cell.direction.x != 0)
+                       then cell with direction = empty_direction 0
                        else cell
-               else cell with along_axis = empty_direction
+               else cell with direction = empty_direction 0
 
   -- Actually move the movable cells.
   let cells = tabulate_2d h w move_cell
 
   -- Reset can_be_moved_to_from fields.
   let cells = map (map (\(cell: cell) -> cell with can_be_moved_to_from.calculated = false
-                                              with can_be_moved_to_from.flow_x = false
-                                              with can_be_moved_to_from.flow_y = false)) cells
+                                              with can_be_moved_to_from.direction.x = false
+                                              with can_be_moved_to_from.direction.y = false)) cells
   in cells
 
 module type scenario = {
@@ -262,12 +260,12 @@ module mk_lys (scenario: scenario): lys with text_content = text_content = {
       s
 
   let render (s: state): [][]argb.colour =
-    let render_cell (cell: cell): (argb.colour, bool, i64, i64) =
+    let render_cell (cell: cell): (argb.colour, bool, i8, i8) =
       let (color, occupied) =
         if is_occupied cell
         then (cell.color, true)
-        else let (has_flow_x, has_flow_y) = (cell.underlying.flow_x != 0,
-                                             cell.underlying.flow_y != 0)
+        else let (has_flow_x, has_flow_y) = (cell.underlying.direction.x != 0,
+                                             cell.underlying.direction.y != 0)
              in if has_flow_x && has_flow_y
                 then (argb.white, false)
                 else if has_flow_x
@@ -275,11 +273,11 @@ module mk_lys (scenario: scenario): lys with text_content = text_content = {
                 else if has_flow_y
                 then (argb.white, false)
                 else (argb.black, false)
-      in (color, occupied, cell.underlying.flow_x, cell.underlying.flow_y)
+      in (color, occupied, cell.underlying.direction.x, cell.underlying.direction.y)
 
     let rendered_cells = map (map render_cell) s.grid
 
-    let flow_draw_at (flow_x: i64) (flow_y: i64) (y: i64) (x: i64): bool =
+    let flow_draw_at (flow_x: i8) (flow_y: i8) (y: i64) (x: i64): bool =
       let (d2, m2) = (scale / 2, scale % 2)
       let (y, x) = (y - d2,
                     x - d2)
@@ -289,7 +287,7 @@ module mk_lys (scenario: scenario): lys with text_content = text_content = {
                    else (y, x)
       let d = d2 - m2
       let d' = d - 1 - m2
-      let (y', x') = (flow_y * y, flow_x * x)
+      let (y', x') = (i64.i8 flow_y * y, i64.i8 flow_x * x)
       let (y_abs, x_abs) = (i64.abs y, i64.abs x)
       in if flow_y == 0
          then x' == d - y_abs && y_abs <= d
