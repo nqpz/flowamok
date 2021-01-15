@@ -393,6 +393,34 @@ module scenario_crossing_close = {
     in (rng, grid)
 }
 
+module scenario_crossroads = {
+  let init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
+    let grid = add_line_horizontal 29 1 58 (-1) grid
+    let grid = add_line_horizontal 30 1 58 1 grid
+    let grid = add_line_vertical 1 58 29 1 grid
+    let grid = add_line_vertical 1 58 30 (-1) grid
+    in grid
+
+  let step [h] [w] (grid: *[h][w]cell) (_steps: i64) (rng: rng): (rng, *[h][w]cell) =
+    let (rng, choice_east) = dist_i8.rand (0, 1) rng -- most busy
+    let (rng, choice_south) = dist_i8.rand (0, 4) rng
+    let (rng, choice_north) = dist_i8.rand (0, 9) rng
+    let (rng, choice_west) = dist_i8.rand (0, 19) rng -- least busy
+    let grid = if choice_north == 0
+               then add_cell 1 29 argb.brown {y=1, x=0} grid
+               else grid
+    let grid = if choice_east == 0
+               then add_cell 29 58 argb.green {y=0, x= -1} grid
+               else grid
+    let grid = if choice_south == 0
+               then add_cell 58 30 argb.violet {y= -1, x=0} grid
+               else grid
+    let grid = if choice_west == 0
+               then add_cell 30 1 argb.yellow {y=0, x=1} grid
+               else grid
+    in (rng, grid)
+}
+
 -- For now, uncomment what scenario you want to see play out:
 
 -- FIXME: Make this more user friendly.
@@ -401,4 +429,5 @@ module scenario_crossing_close = {
 -- module lys = mk_lys scenario_close_queues
 -- module lys = mk_lys scenario_cycle
 -- module lys = mk_lys scenario_crossing
-module lys = mk_lys scenario_crossing_close
+-- module lys = mk_lys scenario_crossing_close
+module lys = mk_lys scenario_crossroads
