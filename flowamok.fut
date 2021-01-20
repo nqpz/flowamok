@@ -85,7 +85,53 @@ let add_cell [h] [w] (y: i64) (x: i64) (color: argb.colour) (direction: directio
                          with direction = direction
   in cells with [y, x] = copy cell
 
-let step (h: i64) (w: i64) (cells: *[h][w]cell): *[h][w]cell =
+let find_cycles [h] [w] (cells: [h][w]cell): [][h][w](direction flow) =
+  let is_corner (cell: cell): bool =
+    cell.underlying.direction.y != 0 && cell.underlying.direction.x != 0
+  let corners = filter (\(y, x) -> is_corner cells[y, x]) (flatten (tabulate_2d h w (\y x -> (y, x))))
+  let n_corners = length corners
+  let empties () = replicate h (replicate w (empty_direction 0))
+  let starts = flatten (map (\(y, x) ->
+                               let cell_dir = cells[y, x].underlying.direction
+                               let start1 = (empties () with [y, x] = {y=cell_dir.y, x=0},
+                                             (y + i64.i8 cell_dir.y, x))
+                               let start2 = (empties () with [y, x] = {y=0, x=cell_dir.x},
+                                             (y, x + i64.i8 cell_dir.x))
+                               in [start1, start2]
+                            ) corners)
+  let n_starts = length starts
+  let grids = starts ++ replicate (n_corners * n_corners) ((empties ()), (0, 0))
+  let (_, n_grids, grids) =
+    loop (cur_grid, n_grids, grids) = (0, n_starts, grids)
+    while cur_grid < n_grids
+    do let (grid, (y, x)) = grids[cur_grid]
+       let grid_cell = grid[y, x]
+       in if grid_cell.y != 0 || grid_cell.x != 0 -- We have a cycle
+          then (cur_grid + 1, n_grids, grids)
+          else let cell = cells[y, x]
+               let cell_dirs = cell.underlying.direction
+               in if cell_dirs.y != 0 && cell_dirs.x != 0
+                  then let grid_a = copy grid -- FIXME: Unnecesary copy
+                       let grid_b = copy grid
+                       let grids[cur_grid] = (grid_a with [y, x] = {y=cell_dirs.y, x=0},
+                                              (y + i64.i8 cell_dirs.y, x))
+                       let grids[n_grids] = (grid_b with [y, x] = {y=0, x=cell_dirs.x},
+                                             (y, x + i64.i8 cell_dirs.x))
+                       in (cur_grid, n_grids + 1, grids)
+                  else if cell_dirs.y != 0 || cell_dirs.x != 0
+                  then let grids[cur_grid] = (copy grid with [y, x] = cell_dirs,
+                                              (y + i64.i8 cell_dirs.y, x + i64.i8 cell_dirs.x))
+                       in (cur_grid, n_grids, grids)
+                  else let grids[cur_grid] = (copy grid, (-1, -1))
+                       in (cur_grid + 1, n_grids, grids)
+  let grids = grids[0:n_grids]
+  let grids = map (.0) (filter (\(_, (y, _)) -> y != -1) grids)
+  -- FIXME: Remove duplicates.
+  in grids
+
+let step [n_cycle_checks] (h: i64) (w: i64)
+                          (cycle_checks: [n_cycle_checks][h][w](direction flow))
+                          (cells: *[h][w]cell): *[h][w]cell =
   let update_can_be_moved_to_from (cells: *[h][w]cell): *[h][w]cell =
     let update_can_be_moved_to_from_cell (y: i64) (x: i64): cell =
       let cell = cells[y, x]
@@ -135,14 +181,39 @@ let step (h: i64) (w: i64) (cells: *[h][w]cell): *[h][w]cell =
     -- need to iterate in case of close queues.
     in tabulate_2d h w update_can_be_moved_to_from_cell
 
-  let (cells, _, _) =
-    -- FIXME: Handle deadlocks somehow.
-    loop (cells, n_steps, running) = (cells, 0, true) while running
+  let (cells, _n_calculated, _) =
+    loop (cells, n_calculated_prev, running) = (cells, 0, true) while running
     do let cells' = update_can_be_moved_to_from cells
        let n_calculated = i64.sum (map (\cell -> i64.bool (cell.can_be_moved_to_from.calculated)) (flatten cells'))
-       in if n_calculated == h * w || n_steps > h * w -- FIXME (temporary security measure)
-          then (cells', n_steps, false)
-          else (cells', n_steps + 1, true)
+       in (cells', n_calculated, n_calculated != n_calculated_prev)
+
+  -- Cycle detection and resolution.
+  -- FIXME: This can be made to run faster.
+  let n_cells = h * w
+  let cells =
+    loop cells for i < n_cycle_checks
+    do let cycle_check_grid = cycle_checks[i]
+       let cells_flat = flatten_to n_cells cells
+       let checks_flat = flatten_to n_cells cycle_check_grid
+       in if all (\(cell: cell, check: direction flow) ->
+                    (check.y == 0 && check.x == 0) || (!cell.can_be_moved_to_from.calculated &&
+                                                       cell.direction == check))
+                 (zip cells_flat checks_flat)
+          then let cells_flat =
+                 map3 (\(cell: cell) (check: direction flow) ((y, x): (i64, i64)) ->
+                         if check.y != 0 || check.x != 0
+                         then let u_dir = cell.underlying.direction
+                              let cell = cell with can_be_moved_to_from.calculated = true
+                              in if u_dir.y != 0 && u_dir.x != 0
+                                 then if cycle_check_grid[y - i64.i8 u_dir.y, x] == {y=u_dir.y, x=0}
+                                      then cell with can_be_moved_to_from.direction.y = true
+                                      else cell with can_be_moved_to_from.direction.x = true
+                                 else cell with can_be_moved_to_from.direction.y = cell.underlying.direction.y != 0
+                                           with can_be_moved_to_from.direction.x = cell.underlying.direction.x != 0
+                         else cell)
+                      cells_flat checks_flat (flatten_to n_cells (tabulate_2d h w (\y x -> (y, x))))
+               in unflatten h w cells_flat
+          else cells
 
   let move_cell (y: i64) (x: i64): cell =
     let cell = cells[y, x]
@@ -214,7 +285,8 @@ module mk_lys (scenario: scenario): lys with text_content = text_content = {
     {h: i64, w: i64,
      rng: rng,
      steps: i64,
-     grid: [][]cell}
+     grid: [][]cell,
+     cycle_checks: [][][](direction flow)}
 
   type text_content = text_content
 
@@ -231,7 +303,8 @@ module mk_lys (scenario: scenario): lys with text_content = text_content = {
     let rng = rnge.rng_from_seed [i32.u32 seed]
     let (rng, grid) = create_grid (h / scale) (w / scale) rng
     let grid = scenario.init grid
-    in {h, w, rng, steps=0, grid}
+    let cycle_checks = find_cycles grid
+    in {h, w, rng, steps=0, grid, cycle_checks}
 
   let grab_mouse = false
 
@@ -250,7 +323,8 @@ module mk_lys (scenario: scenario): lys with text_content = text_content = {
       if key == SDLK_SPACE
       then let (h, w) = (s.h / scale, s.w / scale)
            let grid = copy (s.grid :> [h][w]cell) -- FIXME: ugly
-           let grid = step h w grid
+           let cycle_checks = s.cycle_checks :> [][h][w](direction flow)
+           let grid = step h w cycle_checks grid
            let (rng, grid) = scenario.step grid s.steps s.rng
            in s with rng = rng
                 with steps = s.steps + 1
@@ -419,6 +493,26 @@ module scenario_crossroads = {
     in (rng, grid)
 }
 
+module scenario_cycle_small = {
+  let init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
+    let grid = add_line_horizontal 11 11 13 1 grid
+    let grid = add_line_vertical 11 13 13 1 grid
+    let grid = add_line_horizontal 13 11 13 (-1) grid
+    let grid = add_line_vertical 11 13 11 (-1) grid
+    let grid = add_cell 11 11 argb.red {y=0, x=1} grid
+    let grid = add_cell 11 12 argb.red {y=0, x=1} grid
+    let grid = add_cell 11 13 argb.blue {y=1, x=0} grid
+    let grid = add_cell 12 13 argb.blue {y=1, x=0} grid
+    let grid = add_cell 13 13 argb.orange {y=0, x= -1} grid
+    let grid = add_cell 13 12 argb.orange {y=0, x= -1} grid
+    let grid = add_cell 13 11 argb.magenta {y= -1, x=0} grid
+    let grid = add_cell 12 11 argb.magenta {y= -1, x=0} grid
+    in grid
+
+  let step [h] [w] (grid: *[h][w]cell) (_steps: i64) (rng: rng): (rng, *[h][w]cell) =
+    (rng, grid)
+}
+
 -- For now, uncomment what scenario you want to see play out:
 
 -- FIXME: Make this more user friendly.
@@ -428,4 +522,5 @@ module scenario_crossroads = {
 -- module lys = mk_lys scenario_cycle
 -- module lys = mk_lys scenario_crossing
 -- module lys = mk_lys scenario_crossing_close
-module lys = mk_lys scenario_crossroads
+-- module lys = mk_lys scenario_crossroads
+module lys = mk_lys scenario_cycle_small
