@@ -524,6 +524,32 @@ module scenario_cycles_independent = {
     (rng, grid)
 }
 
+module scenario_cycles_overlapping = {
+  let init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
+    let grid = add_line_horizontal 10 10 14 (-1) grid
+    let grid = add_line_vertical 10 24 14 (-1) grid
+    let grid = add_line_horizontal 24 10 14 1 grid
+    let grid = add_line_vertical 10 24 10 1 grid
+
+    let grid = add_line_horizontal 14 14 24 1 grid
+    let grid = add_line_vertical 14 20 24 1 grid
+    let grid = add_line_horizontal 20 14 24 (-1) grid
+
+    let grid = loop grid for i < 4 do add_cell 10 (11 + i) argb.red {y=0, x= -1} grid
+    let grid = loop grid for i < 14 do add_cell (11 + i) 14 argb.blue {y= -1, x=0} grid
+    let grid = loop grid for i < 4 do add_cell 24 (10 + i) argb.orange {y=0, x=1} grid
+    let grid = loop grid for i < 14 do add_cell (10 + i) 10 argb.magenta {y=1, x=0} grid
+
+    let grid = loop grid for i < 9 do add_cell 14 (15 + i) argb.brown {y=0, x=1} grid
+    let grid = loop grid for i < 6 do add_cell (14 + i) 24 argb.violet {y=1, x=0} grid
+    let grid = loop grid for i < 10 do add_cell 20 (15 + i) argb.brown {y=0, x= -1} grid
+
+    in grid
+
+  let step [h] [w] (grid: *[h][w]cell) (_steps: i64) (rng: rng): (rng, *[h][w]cell) =
+    (rng, grid)
+}
+
 -- For now, uncomment what scenario you want to see play out:
 
 -- FIXME: Make this more user friendly.
@@ -535,4 +561,5 @@ module scenario_cycles_independent = {
 -- module lys = mk_lys scenario_crossing_close
 -- module lys = mk_lys scenario_crossroads
 -- module lys = mk_lys scenario_cycle_small
-module lys = mk_lys scenario_cycles_independent
+-- module lys = mk_lys scenario_cycles_independent
+module lys = mk_lys scenario_cycles_overlapping
