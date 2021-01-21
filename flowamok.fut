@@ -89,7 +89,6 @@ let find_cycles [h] [w] (cells: [h][w]cell): [][h][w](direction flow) =
   let is_corner (cell: cell): bool =
     cell.underlying.direction.y != 0 && cell.underlying.direction.x != 0
   let corners = filter (\(y, x) -> is_corner cells[y, x]) (flatten (tabulate_2d h w (\y x -> (y, x))))
-  let n_corners = length corners
   let empties () = replicate h (replicate w (empty_direction 0))
   let starts = flatten (map (\(y, x) ->
                                let cell_dir = cells[y, x].underlying.direction
@@ -100,9 +99,8 @@ let find_cycles [h] [w] (cells: [h][w]cell): [][h][w](direction flow) =
                                in [start1, start2]
                             ) corners)
   let n_starts = length starts
-  let grids = starts ++ replicate (n_corners * n_corners) ((empties ()), (0, 0))
   let (_, n_grids, grids) =
-    loop (cur_grid, n_grids, grids) = (0, n_starts, grids)
+    loop (cur_grid, n_grids, grids) = (0, n_starts, starts)
     while cur_grid < n_grids
     do let (grid, (y, x)) = grids[cur_grid]
        let grid_cell = grid[y, x]
@@ -115,8 +113,8 @@ let find_cycles [h] [w] (cells: [h][w]cell): [][h][w](direction flow) =
                        let grid_b = copy grid
                        let grids[cur_grid] = (grid_a with [y, x] = {y=cell_dirs.y, x=0},
                                               (y + i64.i8 cell_dirs.y, x))
-                       let grids[n_grids] = (grid_b with [y, x] = {y=0, x=cell_dirs.x},
-                                             (y, x + i64.i8 cell_dirs.x))
+                       let grids = grids ++ [(grid_b with [y, x] = {y=0, x=cell_dirs.x},
+                                              (y, x + i64.i8 cell_dirs.x))]
                        in (cur_grid, n_grids + 1, grids)
                   else if cell_dirs.y != 0 || cell_dirs.x != 0
                   then let grids[cur_grid] = (copy grid with [y, x] = cell_dirs,
@@ -499,14 +497,27 @@ module scenario_cycle_small = {
     let grid = add_line_vertical 11 13 13 1 grid
     let grid = add_line_horizontal 13 11 13 (-1) grid
     let grid = add_line_vertical 11 13 11 (-1) grid
-    let grid = add_cell 11 11 argb.red {y=0, x=1} grid
-    let grid = add_cell 11 12 argb.red {y=0, x=1} grid
-    let grid = add_cell 11 13 argb.blue {y=1, x=0} grid
-    let grid = add_cell 12 13 argb.blue {y=1, x=0} grid
-    let grid = add_cell 13 13 argb.orange {y=0, x= -1} grid
-    let grid = add_cell 13 12 argb.orange {y=0, x= -1} grid
-    let grid = add_cell 13 11 argb.magenta {y= -1, x=0} grid
-    let grid = add_cell 12 11 argb.magenta {y= -1, x=0} grid
+    let grid = loop grid for i < 2 do add_cell 11 (11 + i) argb.red {y=0, x=1} grid
+    let grid = loop grid for i < 2 do add_cell (11 + i) 13 argb.blue {y=1, x=0} grid
+    let grid = loop grid for i < 2 do add_cell 13 (12 + i) argb.orange {y=0, x= -1} grid
+    let grid = loop grid for i < 2 do add_cell (12 + i) 11 argb.magenta {y= -1, x=0} grid
+    in grid
+
+  let step [h] [w] (grid: *[h][w]cell) (_steps: i64) (rng: rng): (rng, *[h][w]cell) =
+    (rng, grid)
+}
+
+module scenario_cycles_independent = {
+  let init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
+    let grid = scenario_cycle_small.init grid
+    let grid = add_line_horizontal 10 10 14 (-1) grid
+    let grid = add_line_vertical 10 14 14 (-1) grid
+    let grid = add_line_horizontal 14 10 14 1 grid
+    let grid = add_line_vertical 10 14 10 1 grid
+    let grid = loop grid for i < 4 do add_cell 10 (11 + i) argb.red {y=0, x= -1} grid
+    let grid = loop grid for i < 4 do add_cell (11 + i) 14 argb.blue {y= -1, x=0} grid
+    let grid = loop grid for i < 4 do add_cell 14 (10 + i) argb.orange {y=0, x=1} grid
+    let grid = loop grid for i < 4 do add_cell (10 + i) 10 argb.magenta {y=1, x=0} grid
     in grid
 
   let step [h] [w] (grid: *[h][w]cell) (_steps: i64) (rng: rng): (rng, *[h][w]cell) =
@@ -523,4 +534,5 @@ module scenario_cycle_small = {
 -- module lys = mk_lys scenario_crossing
 -- module lys = mk_lys scenario_crossing_close
 -- module lys = mk_lys scenario_crossroads
-module lys = mk_lys scenario_cycle_small
+-- module lys = mk_lys scenario_cycle_small
+module lys = mk_lys scenario_cycles_independent
