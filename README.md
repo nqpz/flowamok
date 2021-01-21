@@ -17,4 +17,7 @@ Then run `make run` to build and run in a window.
 
 ## Controls
 
-Press Space to step through the simulation.
+- Space: Step through the simulation manually.
+- `a`: Toggle auto-stepping.
+- Up arrow key: Increment the steps per second in the auto-stepping mode.
+- Down arrow key: Decrement the steps per second in the auto-stepping mode.

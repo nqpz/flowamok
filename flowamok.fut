@@ -2,21 +2,25 @@ import "lib/github.com/diku-dk/lys/lys"
 import "model"
 import "scenarios"
 
-type text_content = i32
+type text_content = (i32, i32, i32)
 module mk_lys (scenario: scenario): lys with text_content = text_content = {
   type~ state =
     {h: i64, w: i64,
+     auto: bool,
      rng: rng,
+     time: f32,
+     steps_auto: i64,
+     steps_auto_per_second: i32,
      steps: i64,
      grid: [][]cell,
      cycle_checks: [][][](direction flow)}
 
   type text_content = text_content
 
-  let text_format () = "FPS: %d\n"
+  let text_format () = "FPS: %d\nAuto: %[no|yes]\nSteps per second: %d"
 
-  let text_content (fps: f32) (_s: state): text_content =
-    t32 fps
+  let text_content (fps: f32) (s: state): text_content =
+    (t32 fps, i32.bool s.auto, s.steps_auto_per_second)
 
   let text_colour = const argb.white
 
@@ -27,7 +31,7 @@ module mk_lys (scenario: scenario): lys with text_content = text_content = {
     let (rng, grid) = create_grid (h / scale) (w / scale) rng
     let grid = scenario.init grid
     let cycle_checks = find_cycles grid
-    in {h, w, rng, steps=0, grid, cycle_checks}
+    in {h, w, auto=false, rng, time=0, steps_auto=0, steps_auto_per_second=30, steps=0, grid, cycle_checks}
 
   let grab_mouse = false
 
@@ -38,20 +42,35 @@ module mk_lys (scenario: scenario): lys with text_content = text_content = {
     --   with w = w
     --   with grid = resize_grid s.grid h w s.rng
 
-  let event (e: event) (s: state): state =
+  let step (s: state): state =
+    let (h, w) = (s.h / scale, s.w / scale)
+    let grid = copy (s.grid :> [h][w]cell) -- FIXME: ugly
+    let cycle_checks = s.cycle_checks :> [][h][w](direction flow)
+    let grid = step h w cycle_checks grid
+    let (rng, grid) = scenario.step grid s.steps s.rng
+    in s with rng = rng
+         with steps = s.steps + 1
+         with grid = grid
+
+let event (e: event) (s: state): state =
     match e
-    case #step _td ->
-      s
+    case #step td ->
+      if s.auto
+      then let time = s.time + td
+           let steps_goal = i64.f32 (time * f32.i32 s.steps_auto_per_second)
+           let s = loop s for _i < steps_goal - s.steps_auto do step s
+           in s with time = time
+                with steps_auto = steps_goal
+      else s
     case #keydown {key} ->
       if key == SDLK_SPACE
-      then let (h, w) = (s.h / scale, s.w / scale)
-           let grid = copy (s.grid :> [h][w]cell) -- FIXME: ugly
-           let cycle_checks = s.cycle_checks :> [][h][w](direction flow)
-           let grid = step h w cycle_checks grid
-           let (rng, grid) = scenario.step grid s.steps s.rng
-           in s with rng = rng
-                with steps = s.steps + 1
-                with grid = grid
+      then step s with auto = false
+      else if key == SDLK_a
+      then s with auto = !s.auto
+      else if key == SDLK_UP
+      then s with steps_auto_per_second = s.steps_auto_per_second + 1
+      else if key == SDLK_DOWN
+      then s with steps_auto_per_second = s.steps_auto_per_second - 1
       else s
     case _ ->
       s
