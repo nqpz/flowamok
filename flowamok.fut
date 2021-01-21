@@ -74,7 +74,7 @@ let event (e: event) (s: state): state =
       else if key == SDLK_UP
       then s with steps_auto_per_second = s.steps_auto_per_second + 1
       else if key == SDLK_DOWN
-      then s with steps_auto_per_second = s.steps_auto_per_second - 1
+      then s with steps_auto_per_second = i32.max 1 (s.steps_auto_per_second - 1)
       else if key == SDLK_r
       then let (rng, grid, cycle_checks) = init_grid (s.h / scale) (s.w / scale) s.rng
            in s with rng = rng
