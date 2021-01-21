@@ -26,11 +26,15 @@ module mk_lys (scenario: scenario): lys with text_content = text_content = {
 
   let scale = 10i64
 
-  let init (seed: u32) (h: i64) (w: i64): state =
-    let rng = rnge.rng_from_seed [i32.u32 seed]
-    let (rng, grid) = create_grid (h / scale) (w / scale) rng
+  let init_grid (h: i64) (w: i64) (rng: rng): (rng, [h][w]cell, [][h][w](direction flow)) =
+    let (rng, grid) = create_grid h w rng
     let grid = scenario.init grid
     let cycle_checks = find_cycles grid
+    in (rng, grid, cycle_checks)
+
+  let init (seed: u32) (h: i64) (w: i64): state =
+    let rng = rnge.rng_from_seed [i32.u32 seed]
+    let (rng, grid, cycle_checks) = init_grid (h / scale) (w / scale) rng
     in {h, w, auto=false, rng, time=0, steps_auto=0, steps_auto_per_second=30, steps=0, grid, cycle_checks}
 
   let grab_mouse = false
@@ -71,6 +75,12 @@ let event (e: event) (s: state): state =
       then s with steps_auto_per_second = s.steps_auto_per_second + 1
       else if key == SDLK_DOWN
       then s with steps_auto_per_second = s.steps_auto_per_second - 1
+      else if key == SDLK_r
+      then let (rng, grid, cycle_checks) = init_grid (s.h / scale) (s.w / scale) s.rng
+           in s with rng = rng
+                with grid = grid
+                with cycle_checks = cycle_checks
+                with auto = false
       else s
     case _ ->
       s
