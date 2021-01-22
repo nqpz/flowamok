@@ -85,6 +85,11 @@ let add_cell [h] [w] (y: i64) (x: i64) (color: argb.colour) (direction: directio
                          with direction = direction
   in cells with [y, x] = copy cell
 
+let nub_2d [l] [m] [n] (srcs: [l][m][n](direction flow)): [][m][n](direction flow) =
+  let srcs' = zip srcs (0..<l)
+  let (srcs'', _) = unzip (filter (\(src0, i0) -> !(any (\(src, i) -> i < i0 && src0 == src) srcs')) srcs')
+  in srcs''
+
 let find_cycles [h] [w] (cells: [h][w]cell): [][h][w](direction flow) =
   let is_corner (cell: cell): bool =
     cell.underlying.direction.y != 0 && cell.underlying.direction.x != 0
@@ -124,7 +129,7 @@ let find_cycles [h] [w] (cells: [h][w]cell): [][h][w](direction flow) =
                        in (cur_grid + 1, n_grids, grids)
   let grids = grids[0:n_grids]
   let grids = map (.0) (filter (\(_, (y, _)) -> y != -1) grids)
-  -- FIXME: Remove duplicates.
+  let grids = nub_2d grids
   in grids
 
 let step [n_cycle_checks] (h: i64) (w: i64)
