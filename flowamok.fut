@@ -40,6 +40,11 @@ let scenario_names =
   +++ "independent tight cycles"
   +++ "overlapping tight cycles"
 
+-- FIXME: Maybe this should be adjustable in some fashion.
+let scale = 10i64
+let gh = 108i64
+let gw = 192i64
+
 type text_content = (i32, i32, i32, i32)
 module lys: lys with text_content = text_content = {
   type~ state =
@@ -63,8 +68,6 @@ module lys: lys with text_content = text_content = {
 
   let text_colour = const argb.white
 
-  let scale = 10i64
-
   let init_grid (h: i64) (w: i64) (rng: rng) (scenario_id: i64): (rng, [h][w]cell) =
     let (rng, grid) = create_grid h w rng
     let grid = scenario_init scenario_id grid
@@ -73,7 +76,7 @@ module lys: lys with text_content = text_content = {
   let init (seed: u32) (h: i64) (w: i64): state =
     let rng = rnge.rng_from_seed [i32.u32 seed]
     let rngs = rnge.split_rng scenario.n_scenarios rng
-    let (rngs, grids) = unzip (map2 (init_grid (h / scale) (w / scale)) rngs (0..<scenario.n_scenarios))
+    let (rngs, grids) = unzip (map2 (init_grid gh gw) rngs (0..<scenario.n_scenarios))
     let rng = rnge.join_rng rngs
     let scenario_id = 0
     let cycle_checks = find_cycles grids[scenario_id]
@@ -83,19 +86,15 @@ module lys: lys with text_content = text_content = {
 
   let grab_mouse = false
 
-  -- FIXME
-  let resize (_h: i64) (_w: i64) (s: state): state =
-    s
-    -- s with h = h
-    --   with w = w
-    --   with grid = resize_grid s.grid h w s.rng
+  let resize (h: i64) (w: i64) (s: state): state =
+    s with h = h
+      with w = w
 
   let step (s: state): state =
-    let (h, w) = (s.h / scale, s.w / scale)
-    let grids = copy (s.grids :> [scenario.n_scenarios][h][w]cell) -- FIXME: ugly
+    let grids = copy (s.grids :> [scenario.n_scenarios][gh][gw]cell) -- FIXME: ugly
     let grid = copy grids[s.scenario_id]
-    let cycle_checks = s.cycle_checks :> [][h][w](direction flow)
-    let grid = step h w cycle_checks grid
+    let cycle_checks = s.cycle_checks :> [][gh][gw](direction flow)
+    let grid = step gh gw cycle_checks grid
     let (rng, grid) = scenario_step s.scenario_id grid s.steps s.rng
     let grids[s.scenario_id] = grid
     in s with rng = rng
@@ -135,9 +134,8 @@ let event (e: event) (s: state): state =
       else if key == SDLK_DOWN
       then s with steps_auto_per_second = i32.max 1 (s.steps_auto_per_second - 1)
       else if key == SDLK_r
-      then let (h, w) = (s.h / scale, s.w / scale)
-           let (rng, grid) = init_grid h w s.rng s.scenario_id
-           let grids = copy (s.grids :> [scenario.n_scenarios][h][w]cell)
+      then let (rng, grid) = init_grid gh gw s.rng s.scenario_id
+           let grids = copy (s.grids :> [scenario.n_scenarios][gh][gw]cell)
            let grids[s.scenario_id] = grid
            let cycle_checks = find_cycles grid
            in s with rng = rng
@@ -149,6 +147,5 @@ let event (e: event) (s: state): state =
       s
 
   let render (s: state): [][]argb.colour =
-    let (gh, gw) = (s.h / scale, s.w / scale)
-    in render s.h s.w gh gw scale (s.grids[s.scenario_id] :> [gh][gw]cell)
+    render s.h s.w gh gw scale (s.grids[s.scenario_id] :> [gh][gw]cell)
 }
