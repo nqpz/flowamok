@@ -13,7 +13,7 @@ let random_color (rng: rng): (rng, argb.colour) =
   let (rng, color_b) = dist_f32.rand (0.2, 0.8) rng
   in (rng, argb.from_rgba color_r color_g color_b 1.0)
 
-module one_choice: scenario = {
+module single_fork: scenario = {
   let init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
     let grid = add_line_horizontal 10 10 20 1 grid
     let grid = add_line_vertical 10 40 20 1 grid
@@ -30,7 +30,7 @@ module one_choice: scenario = {
     else (rng, grid)
 }
 
-module close_queues: scenario = {
+module tight_queues: scenario = {
   let init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
     let grid = add_line_horizontal 40 10 20 1 grid
     let grid = add_line_vertical 10 40 20 (-1) grid
@@ -41,7 +41,7 @@ module close_queues: scenario = {
     in (rng, add_cell 40 10 color {y=0, x=1} grid)
 }
 
-module cycle: scenario = {
+module basic_cycle: scenario = {
   let init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
     let grid = add_line_horizontal 10 10 30 1 grid
     let grid = add_line_vertical 10 30 30 1 grid
@@ -71,7 +71,7 @@ module crossing: scenario = {
     else (rng, grid)
 }
 
-module crossing_close: scenario = {
+module close_crossing: scenario = {
   let init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
     let grid = add_line_horizontal 20 10 30 1 grid
     let grid = add_line_vertical 10 30 20 1 grid
@@ -113,7 +113,7 @@ module crossroads: scenario = {
     in (rng, grid)
 }
 
-module cycle_small: scenario = {
+module small_tight_cycle: scenario = {
   let init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
     let grid = add_line_horizontal 11 11 13 1 grid
     let grid = add_line_vertical 11 13 13 1 grid
@@ -129,9 +129,9 @@ module cycle_small: scenario = {
     (rng, grid)
 }
 
-module cycles_independent: scenario = {
+module independent_tight_cycles: scenario = {
   let init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
-    let grid = cycle_small.init grid
+    let grid = small_tight_cycle.init grid
     let grid = add_line_horizontal 10 10 14 (-1) grid
     let grid = add_line_vertical 10 14 14 (-1) grid
     let grid = add_line_horizontal 14 10 14 1 grid
@@ -146,7 +146,7 @@ module cycles_independent: scenario = {
     (rng, grid)
 }
 
-module cycles_overlapping: scenario = {
+module overlapping_tight_cycles: scenario = {
   let init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
     let grid = add_line_horizontal 10 10 14 (-1) grid
     let grid = add_line_vertical 10 24 14 (-1) grid

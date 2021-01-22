@@ -4,41 +4,41 @@ module scenario = import "scenarios"
 
 let scenario_init [h] [w] (sid: i64) (grid: *[h][w]cell): *[h][w]cell =
   match sid
-  case 0 -> scenario.one_choice.init grid
-  case 1 -> scenario.close_queues.init grid
-  case 2 -> scenario.cycle.init grid
+  case 0 -> scenario.single_fork.init grid
+  case 1 -> scenario.tight_queues.init grid
+  case 2 -> scenario.basic_cycle.init grid
   case 3 -> scenario.crossing.init grid
-  case 4 -> scenario.crossing_close.init grid
+  case 4 -> scenario.close_crossing.init grid
   case 5 -> scenario.crossroads.init grid
-  case 6 -> scenario.cycle_small.init grid
-  case 7 -> scenario.cycles_independent.init grid
-  case 8 -> scenario.cycles_overlapping.init grid
+  case 6 -> scenario.small_tight_cycle.init grid
+  case 7 -> scenario.independent_tight_cycles.init grid
+  case 8 -> scenario.overlapping_tight_cycles.init grid
   case _ -> grid
 
 let scenario_step [h] [w] (sid: i64) (grid: *[h][w]cell) (steps: i64) (rng: rng): (rng, *[h][w]cell) =
   match sid
-  case 0 -> scenario.one_choice.step grid steps rng
-  case 1 -> scenario.close_queues.step grid steps rng
-  case 2 -> scenario.cycle.step grid steps rng
+  case 0 -> scenario.single_fork.step grid steps rng
+  case 1 -> scenario.tight_queues.step grid steps rng
+  case 2 -> scenario.basic_cycle.step grid steps rng
   case 3 -> scenario.crossing.step grid steps rng
-  case 4 -> scenario.crossing_close.step grid steps rng
+  case 4 -> scenario.close_crossing.step grid steps rng
   case 5 -> scenario.crossroads.step grid steps rng
-  case 6 -> scenario.cycle_small.step grid steps rng
-  case 7 -> scenario.cycles_independent.step grid steps rng
-  case 8 -> scenario.cycles_overlapping.step grid steps rng
+  case 6 -> scenario.small_tight_cycle.step grid steps rng
+  case 7 -> scenario.independent_tight_cycles.step grid steps rng
+  case 8 -> scenario.overlapping_tight_cycles.step grid steps rng
   case _ -> (rng, grid)
 
 let s1 +++ s2 = s1 ++ "|" ++ s2
 let scenario_names =
-  "one choice"
-  +++ "close queues"
-  +++ "cycle"
+  "single fork"
+  +++ "tight queues"
+  +++ "basic cycle"
   +++ "crossing"
-  +++ "crossing close"
+  +++ "close crossing"
   +++ "crossroads"
-  +++ "cycle small"
-  +++ "cycles independent"
-  +++ "cycles overlapping"
+  +++ "small tight cycle"
+  +++ "independent tight cycles"
+  +++ "overlapping tight cycles"
 
 type text_content = (i32, i32, i32, i32)
 module lys: lys with text_content = text_content = {
