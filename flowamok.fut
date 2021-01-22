@@ -46,7 +46,7 @@ module lys: lys with text_content = text_content = {
     {h: i64, w: i64,
      auto: bool,
      rng: rng,
-     time: f32,
+     time_unused: f32,
      steps_auto: i64,
      steps_auto_per_second: i32,
      steps: i64,
@@ -77,7 +77,7 @@ module lys: lys with text_content = text_content = {
     let rng = rnge.join_rng rngs
     let scenario_id = 0
     let cycle_checks = find_cycles grids[scenario_id]
-    in {h, w, auto=false, rng, time=0,
+    in {h, w, auto=false, rng, time_unused=0,
         steps_auto=0, steps_auto_per_second=30, steps=0,
         grids, cycle_checks, scenario_id}
 
@@ -106,11 +106,13 @@ let event (e: event) (s: state): state =
     match e
     case #step td ->
       if s.auto
-      then let time = s.time + td -- FIXME: Keep track of leftover time instead.
-           let steps_goal = i64.f32 (time * f32.i32 s.steps_auto_per_second)
-           let s = loop s for _i < steps_goal - s.steps_auto do step s
-           in s with time = time
-                with steps_auto = steps_goal
+      then let time_total = td + s.time_unused
+           let steps_new = time_total * f32.i32 s.steps_auto_per_second
+           let steps_new' = i64.f32 steps_new
+           let time_unused = time_total - f32.i64 steps_new' / f32.i32 s.steps_auto_per_second
+           let s = loop s for _i < steps_new' do step s
+           in s with time_unused = time_unused
+                with steps_auto = s.steps_auto + steps_new'
       else s
     case #keydown {key} ->
       if key == SDLK_SPACE
