@@ -1,7 +1,6 @@
 import "model"
 
 module type scenario = {
-
   val init [h] [w]: *[h][w]cell -> *[h][w]cell
 
   val step [h] [w]: *[h][w]cell -> i64 -> rng -> (rng, *[h][w]cell)
