@@ -18,7 +18,9 @@ Then run `make run` to build and run in a window.
 ## Controls
 
 - Space: Step through the simulation manually.
+- Left arrow key: Move left in the list of scenarios.
+- Right arrow key: Move left in the list of scenarios.
 - `a`: Toggle auto-stepping.
 - Up arrow key: Increment the steps per second in the auto-stepping mode.
 - Down arrow key: Decrement the steps per second in the auto-stepping mode.
-- `r`: Reset grid and auto-stepping.
+- `r`: Reset the current grid and stop auto-stepping.
