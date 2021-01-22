@@ -104,12 +104,12 @@ let find_cycles [h] [w] (cells: [h][w]cell): [][h][w](direction flow) =
     while cur_grid < n_grids
     do let (grid, (y, x)) = grids[cur_grid]
        let grid_cell = grid[y, x]
-       in if grid_cell.y != 0 || grid_cell.x != 0 -- We have a cycle
+       in if grid_cell.y != 0 || grid_cell.x != 0 -- This means we have a cycle.
           then (cur_grid + 1, n_grids, grids)
           else let cell = cells[y, x]
                let cell_dirs = cell.underlying.direction
                in if cell_dirs.y != 0 && cell_dirs.x != 0
-                  then let grid_a = copy grid -- FIXME: Unnecesary copy
+                  then let grid_a = copy grid
                        let grid_b = copy grid
                        let grids[cur_grid] = (grid_a with [y, x] = {y=cell_dirs.y, x=0},
                                               (y + i64.i8 cell_dirs.y, x))
