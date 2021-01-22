@@ -22,10 +22,7 @@ module single_fork: scenario = {
 
   let step [h] [w] (grid: *[h][w]cell) (steps: i64) (rng: rng): (rng, *[h][w]cell) =
     if steps % 5 == 0
-    then let (rng, color_r) = dist_f32.rand (0.2, 0.8) rng
-         let (rng, color_g) = dist_f32.rand (0.2, 0.8) rng
-         let (rng, color_b) = dist_f32.rand (0.2, 0.8) rng
-         let color = argb.from_rgba color_r color_g color_b 1.0
+    then let (rng, color) = random_color rng
          in (rng, add_cell 10 10 color {y=0, x=1} grid)
     else (rng, grid)
 }
