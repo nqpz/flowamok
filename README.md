@@ -24,3 +24,23 @@ Then run `make run` to build and run in a window.
 - Up arrow key: Increment the steps per second in the auto-stepping mode.
 - Down arrow key: Decrement the steps per second in the auto-stepping mode.
 - `r`: Reset the current grid and stop auto-stepping.
+
+## What it looks like
+
+```futhark
+import "flowamok"
+
+type~ state = lys.state
+entry init : u32 -> i64 -> i64 -> state = lys.init
+entry step (s: state) : ([][]u32, state) =
+  (lys.render s,
+   lys.event (#keydown {key=0x20}) s)
+```
+
+```
+> :anim (step, init 123u32 1000i64 1000i64, 100i64)
+```
+
+
+![](README-img/anim4.gif)
+
