@@ -91,7 +91,7 @@ module lys: lys with text_content = text_content = {
       with w = w
 
   let step (s: state): state =
-    let grids = copy (s.grids :> [scenario.n_scenarios][gh][gw]cell) -- FIXME: ugly
+    let grids = copy s.grids :> *[scenario.n_scenarios][gh][gw]cell
     let grid = copy grids[s.scenario_id]
     let cycle_checks = s.cycle_checks :> [][gh][gw](direction flow)
     let grid = step gh gw cycle_checks grid
@@ -135,7 +135,7 @@ let event (e: event) (s: state): state =
       then s with steps_auto_per_second = i32.max 1 (s.steps_auto_per_second - 1)
       else if key == SDLK_r
       then let (rng, grid) = init_grid gh gw s.rng s.scenario_id
-           let grids = copy (s.grids :> [scenario.n_scenarios][gh][gw]cell)
+           let grids = copy s.grids :> *[scenario.n_scenarios][gh][gw]cell
            let grids[s.scenario_id] = grid
            let cycle_checks = find_cycles grid
            in s with rng = rng
