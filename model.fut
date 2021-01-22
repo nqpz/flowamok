@@ -305,11 +305,9 @@ let render (h: i64) (w: i64) (gh: i64) (gw: i64) (scale: i64) (grid: [gh][gw]cel
     let d = d2 - m2
     let (y', x') = (i64.i8 flow_y * y, i64.i8 flow_x * x)
     let (y_abs, x_abs) = (i64.abs y, i64.abs x)
-    in if flow_y == 0
-       then x' == d - y_abs && y_abs <= d
-       else if flow_x == 0
-       then y' == d - x_abs && x_abs <= d
-       else (x' == d - y_abs && y_abs <= d) || (y' == d - x_abs && x_abs <= d)
+    let (y_draw, x_draw) = (y' == d - x_abs && x_abs <= d,
+                            x' == d - y_abs && y_abs <= d)
+    in (flow_x == 0 && y_draw) || (flow_y == 0 && x_draw) || (flow_y != 0 && flow_x != 0 && (y_draw || x_draw))
 
   let render_pixel (y: i64) (x: i64): argb.colour =
     let (y_grid, x_grid) = (y / scale, x / scale)
