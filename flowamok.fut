@@ -13,6 +13,7 @@ let scenario_init [h] [w] (sid: i64) (grid: *[h][w]cell): *[h][w]cell =
   case 6 -> scenario.small_tight_cycle.init grid
   case 7 -> scenario.independent_tight_cycles.init grid
   case 8 -> scenario.overlapping_tight_cycles.init grid
+  case 9 -> scenario.hits_an_edge.init grid
   case _ -> grid
 
 let scenario_step [h] [w] (sid: i64) (grid: *[h][w]cell) (steps: i64) (rng: rng): (rng, *[h][w]cell) =
@@ -26,6 +27,7 @@ let scenario_step [h] [w] (sid: i64) (grid: *[h][w]cell) (steps: i64) (rng: rng)
   case 6 -> scenario.small_tight_cycle.step grid steps rng
   case 7 -> scenario.independent_tight_cycles.step grid steps rng
   case 8 -> scenario.overlapping_tight_cycles.step grid steps rng
+  case 9 -> scenario.hits_an_edge.step grid steps rng
   case _ -> (rng, grid)
 
 let s1 +++ s2 = s1 ++ "|" ++ s2
@@ -39,6 +41,7 @@ let scenario_names =
   +++ "small tight cycle"
   +++ "independent tight cycles"
   +++ "overlapping tight cycles"
+  +++ "hits an edge"
 
 -- FIXME: Maybe this should be adjustable in some fashion.
 let scale = 10i64

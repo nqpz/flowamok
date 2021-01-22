@@ -1,7 +1,7 @@
 import "lib/github.com/diku-dk/cpprandom/random"
 import "lib/github.com/athas/matte/colour"
 
-module rnge = xorshift128plus
+module rnge = pcg32
 module dist_i8 = uniform_int_distribution i8 rnge
 module dist_f32 = uniform_real_distribution f32 rnge
 type rng = rnge.rng
@@ -253,7 +253,7 @@ let step [n_cycle_checks] (h: i64) (w: i64)
                       then (cell.underlying.rng, {y=cell.underlying.direction.y, x=0})
                       else if !flow_y_ok && flow_x_ok_isolated
                       then (cell.underlying.rng, {y=0, x=cell.underlying.direction.x})
-                      else (cell.underlying.rng, empty_direction 0) -- is this possible?
+                      else (cell.underlying.rng, cell_prev.direction)
                     in cell with color = cell_prev.color
                             with direction = direction
                             with underlying.rng = rng

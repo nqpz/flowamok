@@ -172,4 +172,15 @@ module overlapping_tight_cycles: scenario = {
     (rng, grid)
 }
 
-let n_scenarios = 9i64
+module hits_an_edge: scenario = {
+  let init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
+    let grid = add_line_horizontal 10 5 15 1 grid
+    let grid = add_line_vertical 5 15 16 (-1) grid
+    let grid = add_cell 10 10 argb.brown {y=0, x=1} grid
+    in grid
+
+  let step [h] [w] (grid: *[h][w]cell) (_steps: i64) (rng: rng): (rng, *[h][w]cell) =
+    (rng, grid)
+}
+
+let n_scenarios = 10i64
