@@ -206,32 +206,37 @@ let step [n_cycle_checks] (h: i64) (w: i64)
        in (cells', n_calculated, n_calculated != n_calculated_prev)
 
   -- Cycle detection and resolution.
-  -- FIXME: This can be made to run faster.
   let n_cells = h * w
-  let cells =
-    loop cells for i < n_cycle_checks
-    do let cycle_check_grid = cycle_checks[i]
-       let cells_flat = flatten_to n_cells cells
-       let checks_flat = flatten_to n_cells cycle_check_grid
-       in if all (\(cell: cell, check: direction flow) ->
-                    (check.y == 0 && check.x == 0) || (!cell.can_be_moved_to_from.calculated &&
-                                                       cell.direction == check))
-                 (zip cells_flat checks_flat)
-          then let cells_flat =
-                 map3 (\(cell: cell) (check: direction flow) ((y, x): (i64, i64)) ->
-                         if check.y != 0 || check.x != 0
-                         then let u_dir = cell.underlying.direction
-                              let cell = cell with can_be_moved_to_from.calculated = true
-                              in if u_dir.y != 0 && u_dir.x != 0
-                                 then if cycle_check_grid[y - i64.i8 u_dir.y, x] == {y=u_dir.y, x=0}
-                                      then cell with can_be_moved_to_from.direction.y = true
-                                      else cell with can_be_moved_to_from.direction.x = true
-                                 else cell with can_be_moved_to_from.direction.y = cell.underlying.direction.y != 0
-                                           with can_be_moved_to_from.direction.x = cell.underlying.direction.x != 0
-                         else cell)
-                      cells_flat checks_flat (flatten_to n_cells (tabulate_2d h w (\y x -> (y, x))))
-               in unflatten h w cells_flat
-          else cells
+  let grids_checked =
+    map (\cycle_check_grid ->
+           let cells_flat = flatten_to n_cells cells
+           let checks_flat = flatten_to n_cells cycle_check_grid
+           in if all (\(cell: cell, check: direction flow) ->
+                        (check.y == 0 && check.x == 0) || (!cell.can_be_moved_to_from.calculated &&
+                                                           cell.direction == check))
+                     (zip cells_flat checks_flat)
+              then let cells_flat =
+                     map3 (\(cell: cell) (check: direction flow) ((y, x): (i64, i64)) ->
+                             if check.y != 0 || check.x != 0
+                             then let u_dir = cell.underlying.direction
+                                  let cell = cell with can_be_moved_to_from.calculated = true
+                                  in if u_dir.y != 0 && u_dir.x != 0
+                                     then if cycle_check_grid[y - i64.i8 u_dir.y, x] == {y=u_dir.y, x=0}
+                                          then cell with can_be_moved_to_from.direction.y = true
+                                          else cell with can_be_moved_to_from.direction.x = true
+                                     else cell with can_be_moved_to_from.direction.y = cell.underlying.direction.y != 0
+                                               with can_be_moved_to_from.direction.x = cell.underlying.direction.x != 0
+                             else cell)
+                          cells_flat checks_flat (flatten_to n_cells (tabulate_2d h w (\y x -> (y, x))))
+                   in unflatten h w cells_flat
+              else cells) cycle_checks
+  let merge_checked (grid1: [h][w]cell) (grid2: [h][w]cell): [h][w]cell =
+    let merge_cell (cell1: cell) (cell2: cell): cell =
+      if cell1.can_be_moved_to_from.calculated
+      then cell1
+      else cell2
+    in map2 (map2 merge_cell) grid1 grid2
+  let cells = reduce merge_checked cells grids_checked
 
   let move_cell (y: i64) (x: i64): cell =
     let cell = cells[y, x]
