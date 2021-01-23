@@ -50,35 +50,35 @@ let has_underlying (cell: cell): bool =
 let is_occupied (cell: cell): bool =
   cell.direction.y != 0 || cell.direction.x != 0
 
-let flatten_coordinate (w: i64) (y: i64) (x: i64): i64 =
-  y * w + x
+let flatten_coordinate (gw: i64) (y: i64) (x: i64): i64 =
+  y * gw + x
 
 let in_bounds (h: i64) (w: i64) (y: i64) (x: i64): bool =
   y >= 0 && y < h && x >= 0 && x < w
 
-let create_grid (h: i64) (w: i64) (rng: rng): (rng, *[h][w]cell) =
-  let n = h * w
+let create_grid (gh: i64) (gw: i64) (rng: rng): (rng, *[gh][gw]cell) =
+  let n = gh * gw
   let rngs = rnge.split_rng n rng
   let cells = map create_cell rngs
-  in (rnge.join_rng rngs, unflatten h w cells)
+  in (rnge.join_rng rngs, unflatten gh gw cells)
 
-let add_line_vertical [h] [w] (y_start: i64) (y_end: i64) (x: i64) (flow: flow) (cells: *[h][w]cell):
-                      *[h][w]cell =
+let add_line_vertical [gh] [gw] (y_start: i64) (y_end: i64) (x: i64) (flow: flow) (cells: *[gh][gw]cell):
+                      *[gh][gw]cell =
   let n = y_end - y_start + 1
   let cells' = flatten cells
-  let indexes = map (\t -> flatten_coordinate w (y_start + t) x) (0..<n)
+  let indexes = map (\t -> flatten_coordinate gw (y_start + t) x) (0..<n)
   let values = map (\i -> cells'[i] with underlying.direction.y = flow) indexes
-  in unflatten h w (scatter cells' indexes values)
+  in unflatten gh gw (scatter cells' indexes values)
 
-let add_line_horizontal [h] [w] (y: i64) (x_start: i64) (x_end: i64) (flow: flow) (cells: *[h][w]cell):
-                        *[h][w]cell =
+let add_line_horizontal [gh] [gw] (y: i64) (x_start: i64) (x_end: i64) (flow: flow) (cells: *[gh][gw]cell):
+                        *[gh][gw]cell =
   let n = x_end - x_start + 1
   let cells' = flatten cells
-  let indexes = map (\t -> flatten_coordinate w y (x_start + t)) (0..<n)
+  let indexes = map (\t -> flatten_coordinate gw y (x_start + t)) (0..<n)
   let values = map (\i -> cells'[i] with underlying.direction.x = flow) indexes
-  in unflatten h w (scatter cells' indexes values)
+  in unflatten gh gw (scatter cells' indexes values)
 
-let add_cell [h] [w] (y: i64) (x: i64) (color: argb.colour) (direction: direction flow) (cells: *[h][w]cell): *[h][w]cell =
+let add_cell [gh] [gw] (y: i64) (x: i64) (color: argb.colour) (direction: direction flow) (cells: *[gh][gw]cell): *[gh][gw]cell =
   let cell = cells[y, x] with color = color
                          with direction = direction
   in cells with [y, x] = copy cell
@@ -93,18 +93,18 @@ let nub_2d [l] [m] [n] (srcs: [l][m][n](direction flow)): [][m][n](direction flo
 --
 -- FIXME: Consider if we maybe want to store the resulting mask in a sparse way
 -- instead.  Mostly relevant if we want to save space.
-let find_cycles [h] [w] (cells: [h][w]cell): [][h][w](direction flow) =
+let find_cycles [gh] [gw] (cells: [gh][gw]cell): [][gh][gw](direction flow) =
   let is_corner (cell: cell): bool =
     cell.underlying.direction.y != 0 && cell.underlying.direction.x != 0
-  let corners = filter (\(y, x) -> is_corner cells[y, x]) (flatten (tabulate_2d h w (\y x -> (y, x))))
-  let empties () = replicate h (replicate w (empty_direction 0))
+  let corners = filter (\(y, x) -> is_corner cells[y, x]) (flatten (tabulate_2d gh gw (\y x -> (y, x))))
+  let empties () = replicate gh (replicate gw (empty_direction 0))
   let starts = flatten (map (\(y, x) ->
                                let cell_dir = cells[y, x].underlying.direction
                                let (y_next, x_next) = (y + i64.i8 cell_dir.y,
                                                        x + i64.i8 cell_dir.x)
                                let (y_next_ok, x_next_ok) =
-                                 (in_bounds h w y_next x && cells[y_next, x].underlying.direction.y == cell_dir.y,
-                                  in_bounds h w y x_next && cells[y, x_next].underlying.direction.x == cell_dir.x)
+                                 (in_bounds gh gw y_next x && cells[y_next, x].underlying.direction.y == cell_dir.y,
+                                  in_bounds gh gw y x_next && cells[y, x_next].underlying.direction.x == cell_dir.x)
                                let y_start () = (empties () with [y, x] = {y=cell_dir.y, x=0},
                                                  (y + i64.i8 cell_dir.y, x), (y, x))
                                let x_start () = (empties () with [y, x] = {y=0, x=cell_dir.x},
@@ -150,10 +150,10 @@ let find_cycles [h] [w] (cells: [h][w]cell): [][h][w](direction flow) =
   let grids = nub_2d grids
   in grids
 
-let step [n_cycle_checks] (h: i64) (w: i64)
-                          (cycle_checks: [n_cycle_checks][h][w](direction flow))
-                          (cells: *[h][w]cell): *[h][w]cell =
-  let update_can_be_moved_to_from (cells: *[h][w]cell): *[h][w]cell =
+let step [n_cycle_checks] (gh: i64) (gw: i64)
+                          (cycle_checks: [n_cycle_checks][gh][gw](direction flow))
+                          (cells: *[gh][gw]cell): *[gh][gw]cell =
+  let update_can_be_moved_to_from (cells: *[gh][gw]cell): *[gh][gw]cell =
     let update_can_be_moved_to_from_cell (y: i64) (x: i64): cell =
       let cell = cells[y, x]
       in if cell.can_be_moved_to_from.calculated
@@ -161,7 +161,7 @@ let step [n_cycle_checks] (h: i64) (w: i64)
          else let (can_be_moved_to_from_calculated, can_be_moved_to_from_base) =
                 if is_occupied cell
                 then let (y_next, x_next) = (y + i64.i8 cell.direction.y, x + i64.i8 cell.direction.x)
-                     in if in_bounds h w y_next x_next
+                     in if in_bounds gh gw y_next x_next
                         then let cell_next = cells[y_next, x_next]
                              in if has_underlying cell_next
                                 then (cell_next.can_be_moved_to_from.calculated,
@@ -177,10 +177,10 @@ let step [n_cycle_checks] (h: i64) (w: i64)
                               then let y_prev = y - i64.i8 cell.underlying.direction.y
                                    let x_prev = x - i64.i8 cell.underlying.direction.x
                                    let cell_prev_y_occupied = cell.underlying.direction.y != 0 &&
-                                                              in_bounds h w y_prev x &&
+                                                              in_bounds gh gw y_prev x &&
                                                               cells[y_prev, x].direction.y != 0
                                    let cell_prev_x_occupied = cell.underlying.direction.x != 0 &&
-                                                              in_bounds h w y x_prev &&
+                                                              in_bounds gh gw y x_prev &&
                                                               cells[y, x_prev].direction.x != 0
                                    let (flow_y, flow_x, next_preference_flow_x) =
                                      match (cell_prev_y_occupied, cell_prev_x_occupied, cell.can_be_moved_to_from.next_preference_flow_x)
@@ -197,7 +197,7 @@ let step [n_cycle_checks] (h: i64) (w: i64)
                                      with can_be_moved_to_from.direction.x = true
                          else cell
                  else cell
-    in tabulate_2d h w update_can_be_moved_to_from_cell
+    in tabulate_2d gh gw update_can_be_moved_to_from_cell
 
   let (cells, _n_calculated, _) =
     -- FIXME: In the best case we only need to run a single iteration of this.
@@ -215,7 +215,7 @@ let step [n_cycle_checks] (h: i64) (w: i64)
        in (cells', n_calculated, n_calculated != n_calculated_prev)
 
   -- Cycle detection and resolution.
-  let n_cells = h * w
+  let n_cells = gh * gw
   let grids_checked =
     map (\cycle_check_grid ->
            let cells_flat = flatten_to n_cells cells
@@ -236,10 +236,10 @@ let step [n_cycle_checks] (h: i64) (w: i64)
                                      else cell with can_be_moved_to_from.direction.y = cell.underlying.direction.y != 0
                                                with can_be_moved_to_from.direction.x = cell.underlying.direction.x != 0
                              else cell)
-                          cells_flat checks_flat (flatten_to n_cells (tabulate_2d h w (\y x -> (y, x))))
-                   in unflatten h w cells_flat
+                          cells_flat checks_flat (flatten_to n_cells (tabulate_2d gh gw (\y x -> (y, x))))
+                   in unflatten gh gw cells_flat
               else cells) cycle_checks
-  let merge_checked (grid1: [h][w]cell) (grid2: [h][w]cell): [h][w]cell =
+  let merge_checked (grid1: [gh][gw]cell) (grid2: [gh][gw]cell): [gh][gw]cell =
     let merge_cell (cell1: cell) (cell2: cell): cell =
       if cell1.can_be_moved_to_from.calculated
       then cell1
@@ -253,11 +253,11 @@ let step [n_cycle_checks] (h: i64) (w: i64)
        then let (y_prev, x_prev) = if cell.can_be_moved_to_from.direction.y
                                    then (y - i64.i8 cell.underlying.direction.y, x)
                                    else (y, x - i64.i8 cell.underlying.direction.x)
-            in if in_bounds h w y_prev x_prev
+            in if in_bounds gh gw y_prev x_prev
                then let cell_prev = cells[y_prev, x_prev]
                     let (flow_y_ok, flow_y_ok_isolated) =
                       if cell.underlying.direction.y != 0 &&
-                         in_bounds h w (y + i64.i8 cell.underlying.direction.y) x
+                         in_bounds gh gw (y + i64.i8 cell.underlying.direction.y) x
                       then let cell_next = cells[y + i64.i8 cell.underlying.direction.y, x]
                            let ok_base = cell_next.underlying.direction.y == cell.underlying.direction.y
                            in (ok_base, ok_base ||
@@ -265,7 +265,7 @@ let step [n_cycle_checks] (h: i64) (w: i64)
                       else (false, false)
                     let (flow_x_ok, flow_x_ok_isolated) =
                       if cell.underlying.direction.x != 0 &&
-                         in_bounds h w y (x + i64.i8 cell.underlying.direction.x)
+                         in_bounds gh gw y (x + i64.i8 cell.underlying.direction.x)
                       then let cell_next = cells[y, x + i64.i8 cell.underlying.direction.x]
                            let ok_base = cell_next.underlying.direction.x == cell.underlying.direction.x
                            in (ok_base, ok_base ||
@@ -288,7 +288,7 @@ let step [n_cycle_checks] (h: i64) (w: i64)
                             with underlying.rng = rng
                else cell
        else let (y_next, x_next) = (y + i64.i8 cell.direction.y, x + i64.i8 cell.direction.x)
-            in if in_bounds h w y_next x_next
+            in if in_bounds gh gw y_next x_next
                then let cell_next = cells[y_next, x_next]
                     in if (cell_next.can_be_moved_to_from.direction.y && cell.direction.y != 0) ||
                           (cell_next.can_be_moved_to_from.direction.x && cell.direction.x != 0)
@@ -297,7 +297,7 @@ let step [n_cycle_checks] (h: i64) (w: i64)
                else cell with direction = empty_direction 0
 
   -- Actually move the movable cells.
-  let cells = tabulate_2d h w move_cell
+  let cells = tabulate_2d gh gw move_cell
 
   -- Reset can_be_moved_to_from fields.
   let cells = map (map (\(cell: cell) -> cell with can_be_moved_to_from.calculated = false
@@ -356,7 +356,7 @@ let render (h: i64) (w: i64) (gh: i64) (gw: i64) (scale: i64) (grid: [gh][gw]cel
   in tabulate_2d h w render_pixel
 
 module type scenario = {
-  val init [h] [w]: *[h][w]cell -> *[h][w]cell
+  val init [gh] [gw]: *[gh][gw]cell -> *[gh][gw]cell
 
-  val step [h] [w]: *[h][w]cell -> i64 -> rng -> (rng, bool, *[h][w]cell)
+  val step [gh] [gw]: *[gh][gw]cell -> i64 -> rng -> (rng, bool, *[gh][gw]cell)
 }

@@ -2,7 +2,7 @@ import "lib/github.com/diku-dk/lys/lys"
 import "model"
 module scenarios = import "scenarios"
 
-let scenario_init [h] [w] (sid: i64) (grid: *[h][w]cell): *[h][w]cell =
+let scenario_init [gh] [gw] (sid: i64) (grid: *[gh][gw]cell): *[gh][gw]cell =
   match sid
   case 0 -> scenarios.single_fork.init grid
   case 1 -> scenarios.tight_queues.init grid
@@ -17,7 +17,7 @@ let scenario_init [h] [w] (sid: i64) (grid: *[h][w]cell): *[h][w]cell =
   case 10 -> scenarios.adding_lines.init grid
   case _ -> grid
 
-let scenario_step [h] [w] (sid: i64) (grid: *[h][w]cell) (steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
+let scenario_step [gh] [gw] (sid: i64) (grid: *[gh][gw]cell) (steps: i64) (rng: rng): (rng, bool, *[gh][gw]cell) =
   match sid
   case 0 -> scenarios.single_fork.step grid steps rng
   case 1 -> scenarios.tight_queues.step grid steps rng
@@ -74,8 +74,8 @@ module lys: lys with text_content = text_content = {
 
   let text_colour = const argb.white
 
-  let init_grid (h: i64) (w: i64) (rng: rng) (scenario_id: i64): (rng, [h][w]cell) =
-    let (rng, grid) = create_grid h w rng
+  let init_grid (gh: i64) (gw: i64) (rng: rng) (scenario_id: i64): (rng, [gh][gw]cell) =
+    let (rng, grid) = create_grid gh gw rng
     let grid = scenario_init scenario_id grid
     in (rng, grid)
 
