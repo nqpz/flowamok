@@ -31,8 +31,8 @@
 import "animation"
 module scenarios = import "scenarios"
 module anim = mk_anim scenarios.overlapping_tight_cycles
-entry init: i64 -> i64 -> i64 -> i32 -> state [] [] [] = anim.init
-entry step: state [] [] [] -> ([][]u32, state [] [] []) = anim.step
+let init = anim.init
+let step = anim.step
 
 -- > :brief :anim (step, init 30i64 30i64 10i64 123i32, 400i64);
 -- format: gif

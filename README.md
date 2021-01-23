@@ -32,8 +32,8 @@ Then run `make run` to build and run in a window.
 import "animation"
 module scenarios = import "scenarios"
 module anim = mk_anim scenarios.overlapping_tight_cycles
-entry init: i64 -> i64 -> i64 -> i32 -> state [] [] [] = anim.init
-entry step: state [] [] [] -> ([][]u32, state [] [] []) = anim.step
+let init = anim.init
+let step = anim.step
 ```
 
 ```
