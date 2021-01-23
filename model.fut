@@ -62,8 +62,6 @@ let create_grid (h: i64) (w: i64) (rng: rng): (rng, *[h][w]cell) =
   let cells = map create_cell rngs
   in (rnge.join_rng rngs, unflatten h w cells)
 
--- FIXME: Also save coordinates separately in a sparse way backwards for later
--- quick iterating for close queues.
 let add_line_vertical [h] [w] (y_start: i64) (y_end: i64) (x: i64) (flow: flow) (cells: *[h][w]cell):
                       *[h][w]cell =
   let n = y_end - y_start + 1
@@ -90,6 +88,11 @@ let nub_2d [l] [m] [n] (srcs: [l][m][n](direction flow)): [][m][n](direction flo
   let (srcs'', _) = unzip (filter (\(src0, i0) -> all (\(src, i) -> i >= i0 || src0 != src) srcs') srcs')
   in srcs''
 
+-- FIXME: It would be nice with an incremental version of this and not have to
+-- re-run the full detection on the entire grid on every underlying change.
+--
+-- FIXME: Consider if we maybe want to store the resulting mask in a sparse way
+-- instead.  Mostly relevant if we want to save space.
 let find_cycles [h] [w] (cells: [h][w]cell): [][h][w](direction flow) =
   let is_corner (cell: cell): bool =
     cell.underlying.direction.y != 0 && cell.underlying.direction.x != 0
@@ -194,12 +197,18 @@ let step [n_cycle_checks] (h: i64) (w: i64)
                                      with can_be_moved_to_from.direction.x = true
                          else cell
                  else cell
-
-    -- FIXME: This is better done sequentially backwards to reduce the times we
-    -- need to iterate in case of close queues.
     in tabulate_2d h w update_can_be_moved_to_from_cell
 
   let (cells, _n_calculated, _) =
+    -- FIXME: In the best case we only need to run a single iteration of this.
+    -- In the worst case we need to run this as many times as there are cells,
+    -- only updating a single cell on every iteration (inherently sequential
+    -- workload).  This is potentially wasteful (at least on non-GPUs) as we
+    -- could accomplish the same thing with a sequential loop with finely tuned
+    -- checking order.  We would probably need a separate array of pre-computed
+    -- sorted grid indexes to accomplish this.  However, this worst-case
+    -- handling could negatively effect the potential best case performance.
+    -- Maybe there's a balance somewhere.
     loop (cells, n_calculated_prev, running) = (cells, 0, true) while running
     do let cells' = update_can_be_moved_to_from cells
        let n_calculated = i64.sum (map (\cell -> i64.bool (cell.can_be_moved_to_from.calculated)) (flatten cells'))

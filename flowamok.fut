@@ -121,7 +121,11 @@ let event (e: event) (s: state): state =
       then step s 1 with auto = false
       else if key == SDLK_LEFT
       then let scenario_id = (s.scenario_id - 1) % scenario.n_scenarios
-           -- FIXME: This is recalculated on every move to a different scenario, which is stupid.
+           -- FIXME: This is recalculated on every move to a different scenario,
+           -- which is potentially slow.  But it's hard to really fix this in a
+           -- satisfying way, since different grids can have a different number
+           -- of cycles, and since we may need to redo cycle detection after
+           -- stepping, which could also change the number of cycles.
            let cycle_checks = find_cycles s.grids[scenario_id]
            in s with scenario_id = scenario_id
                 with cycle_checks = cycle_checks
