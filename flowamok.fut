@@ -48,7 +48,7 @@ let scale = 10i64
 let gh = 108i64
 let gw = 192i64
 
-type text_content = (i32, i32, i32, i32)
+type text_content = (i32, i32, i32, i32, i64)
 module lys: lys with text_content = text_content = {
   type~ state =
     {h: i64, w: i64,
@@ -64,10 +64,10 @@ module lys: lys with text_content = text_content = {
 
   type text_content = text_content
 
-  let text_format () = "FPS: %d\nScenario: %[" ++ scenario_names ++ "]\nAuto: %[no|yes]\nSteps per second: %d"
+  let text_format () = "FPS: %d\nScenario: %[" ++ scenario_names ++ "]\nAuto: %[no|yes]\nSteps per second: %d\nCycles detected: %ld"
 
   let text_content (fps: f32) (s: state): text_content =
-    (t32 fps, i32.i64 s.scenario_id, i32.bool s.auto, s.steps_auto_per_second)
+    (t32 fps, i32.i64 s.scenario_id, i32.bool s.auto, s.steps_auto_per_second, length s.cycle_checks)
 
   let text_colour = const argb.white
 
