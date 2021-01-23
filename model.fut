@@ -88,6 +88,21 @@ let nub_2d [l] [m] [n] (srcs: [l][m][n](direction flow)): [][m][n](direction flo
   let (srcs'', _) = unzip (filter (\(src0, i0) -> all (\(src, i) -> i >= i0 || src0 != src) srcs') srcs')
   in srcs''
 
+-- Taken from https://futhark-lang.org/examples/no-neutral-element.html
+type with_neutral 't = #neutral | #val t
+
+let f_with_neutral 't (f: t -> t -> t)
+                      (x: with_neutral t)
+                      (y: with_neutral t)
+                      : with_neutral t =
+  match (x, y)
+  case (#val x, #val y) -> #val (f x y)
+  case (#neutral, _) -> y
+  case (_, #neutral) -> x
+
+let reduce1 't (f: t -> t -> t) (ts: []t) : with_neutral t =
+  reduce (f_with_neutral f) #neutral (map (\t -> #val t) ts)
+
 -- FIXME: It would be nice with an incremental version of this and not have to
 -- re-run the full detection on the entire grid on every underlying change.
 --
@@ -258,7 +273,9 @@ let step [n_cycle_checks] (gh: i64) (gw: i64)
       then cell1
       else cell2
     in map2 (map2 merge_cell) grid1 grid2
-  let cells = reduce merge_checked cells grids_checked
+  let cells = match reduce1 merge_checked grids_checked
+              case #val cells -> cells
+              case #neutral -> cells
 
   let move_cell (y: i64) (x: i64): cell =
     let cell = cells[y, x]
