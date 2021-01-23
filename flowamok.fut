@@ -93,15 +93,15 @@ module lys: lys with text_content = text_content = {
     s with h = h
       with w = w
 
-  let step (s: state): state =
+  let step (s: state) (n_steps: i64): state =
     let grids = copy s.grids :> *[scenario.n_scenarios][gh][gw]cell
     let grid = copy grids[s.scenario_id]
     let cycle_checks = s.cycle_checks :> [][gh][gw](direction flow)
-    let grid = step gh gw cycle_checks grid
+    let grid = loop grid for _i < n_steps do step gh gw cycle_checks grid
     let (rng, grid) = scenario_step s.scenario_id grid s.steps s.rng
     let grids[s.scenario_id] = grid
     in s with rng = rng
-         with steps = s.steps + 1
+         with steps = s.steps + n_steps
          with grids = grids
 
 let event (e: event) (s: state): state =
@@ -112,13 +112,13 @@ let event (e: event) (s: state): state =
            let steps_new = time_total * f32.i32 s.steps_auto_per_second
            let steps_new' = i64.f32 steps_new
            let time_unused = time_total - f32.i64 steps_new' / f32.i32 s.steps_auto_per_second
-           let s = loop s for _i < steps_new' do step s
+           let s = step s steps_new'
            in s with time_unused = time_unused
                 with steps_auto = s.steps_auto + steps_new'
       else s
     case #keydown {key} ->
       if key == SDLK_SPACE
-      then step s with auto = false
+      then step s 1 with auto = false
       else if key == SDLK_LEFT
       then let scenario_id = (s.scenario_id - 1) % scenario.n_scenarios
            -- FIXME: This is recalculated on every move to a different scenario, which is stupid.
