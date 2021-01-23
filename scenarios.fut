@@ -1,3 +1,4 @@
+import "lib/github.com/athas/matte/colour"
 import "model"
 
 let random_color (rng: rng): (rng, argb.colour) =
