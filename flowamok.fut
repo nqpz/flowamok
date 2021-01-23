@@ -1,35 +1,35 @@
 import "lib/github.com/diku-dk/lys/lys"
 import "model"
-module scenario = import "scenarios"
+module scenarios = import "scenarios"
 
 let scenario_init [h] [w] (sid: i64) (grid: *[h][w]cell): *[h][w]cell =
   match sid
-  case 0 -> scenario.single_fork.init grid
-  case 1 -> scenario.tight_queues.init grid
-  case 2 -> scenario.basic_cycle.init grid
-  case 3 -> scenario.crossing.init grid
-  case 4 -> scenario.close_crossing.init grid
-  case 5 -> scenario.crossroads.init grid
-  case 6 -> scenario.small_tight_cycle.init grid
-  case 7 -> scenario.independent_tight_cycles.init grid
-  case 8 -> scenario.overlapping_tight_cycles.init grid
-  case 9 -> scenario.hits_an_edge.init grid
-  case 10 -> scenario.adding_lines.init grid
+  case 0 -> scenarios.single_fork.init grid
+  case 1 -> scenarios.tight_queues.init grid
+  case 2 -> scenarios.basic_cycle.init grid
+  case 3 -> scenarios.crossing.init grid
+  case 4 -> scenarios.close_crossing.init grid
+  case 5 -> scenarios.crossroads.init grid
+  case 6 -> scenarios.small_tight_cycle.init grid
+  case 7 -> scenarios.independent_tight_cycles.init grid
+  case 8 -> scenarios.overlapping_tight_cycles.init grid
+  case 9 -> scenarios.hits_an_edge.init grid
+  case 10 -> scenarios.adding_lines.init grid
   case _ -> grid
 
 let scenario_step [h] [w] (sid: i64) (grid: *[h][w]cell) (steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
   match sid
-  case 0 -> scenario.single_fork.step grid steps rng
-  case 1 -> scenario.tight_queues.step grid steps rng
-  case 2 -> scenario.basic_cycle.step grid steps rng
-  case 3 -> scenario.crossing.step grid steps rng
-  case 4 -> scenario.close_crossing.step grid steps rng
-  case 5 -> scenario.crossroads.step grid steps rng
-  case 6 -> scenario.small_tight_cycle.step grid steps rng
-  case 7 -> scenario.independent_tight_cycles.step grid steps rng
-  case 8 -> scenario.overlapping_tight_cycles.step grid steps rng
-  case 9 -> scenario.hits_an_edge.step grid steps rng
-  case 10 -> scenario.adding_lines.step grid steps rng
+  case 0 -> scenarios.single_fork.step grid steps rng
+  case 1 -> scenarios.tight_queues.step grid steps rng
+  case 2 -> scenarios.basic_cycle.step grid steps rng
+  case 3 -> scenarios.crossing.step grid steps rng
+  case 4 -> scenarios.close_crossing.step grid steps rng
+  case 5 -> scenarios.crossroads.step grid steps rng
+  case 6 -> scenarios.small_tight_cycle.step grid steps rng
+  case 7 -> scenarios.independent_tight_cycles.step grid steps rng
+  case 8 -> scenarios.overlapping_tight_cycles.step grid steps rng
+  case 9 -> scenarios.hits_an_edge.step grid steps rng
+  case 10 -> scenarios.adding_lines.step grid steps rng
   case _ -> (rng, false, grid)
 
 let s1 +++ s2 = s1 ++ "|" ++ s2
@@ -81,13 +81,13 @@ module lys: lys with text_content = text_content = {
 
   let init (seed: u32) (h: i64) (w: i64): state =
     let rng = rnge.rng_from_seed [i32.u32 seed]
-    let rngs = rnge.split_rng scenario.n_scenarios rng
-    let (rngs, grids) = unzip (map2 (init_grid gh gw) rngs (0..<scenario.n_scenarios))
+    let rngs = rnge.split_rng scenarios.n_scenarios rng
+    let (rngs, grids) = unzip (map2 (init_grid gh gw) rngs (0..<scenarios.n_scenarios))
     let rng = rnge.join_rng rngs
     let scenario_id = 0
     let cycle_checks = find_cycles grids[scenario_id]
     in {h, w, auto=false, rng, time_unused=0,
-        steps_auto_per_second=30, steps=replicate scenario.n_scenarios 0,
+        steps_auto_per_second=30, steps=replicate scenarios.n_scenarios 0,
         grids, cycle_checks, scenario_id}
 
   let grab_mouse = false
@@ -97,7 +97,7 @@ module lys: lys with text_content = text_content = {
       with w = w
 
   let step (s: state) (n_steps: i64): state =
-    let grids = copy s.grids :> *[scenario.n_scenarios][gh][gw]cell
+    let grids = copy s.grids :> *[scenarios.n_scenarios][gh][gw]cell
     let cycle_checks = s.cycle_checks :> [][gh][gw](direction flow)
     let steps = copy s.steps
     let (rng, grid, cycle_checks, step_cur) =
@@ -130,7 +130,7 @@ let event (e: event) (s: state): state =
       if key == SDLK_SPACE
       then step s 1 with auto = false
       else if key == SDLK_LEFT
-      then let scenario_id = (s.scenario_id - 1) % scenario.n_scenarios
+      then let scenario_id = (s.scenario_id - 1) % scenarios.n_scenarios
            -- FIXME: This is recalculated on every move to a different scenario,
            -- which is potentially slow.  But it's hard to really fix this in a
            -- satisfying way, since different grids can have a different number
@@ -140,7 +140,7 @@ let event (e: event) (s: state): state =
            in s with scenario_id = scenario_id
                 with cycle_checks = cycle_checks
       else if key == SDLK_RIGHT
-      then let scenario_id = (s.scenario_id + 1) % scenario.n_scenarios
+      then let scenario_id = (s.scenario_id + 1) % scenarios.n_scenarios
            let cycle_checks = find_cycles s.grids[scenario_id]
            in s with scenario_id = scenario_id
                 with cycle_checks = cycle_checks
@@ -152,7 +152,7 @@ let event (e: event) (s: state): state =
       then s with steps_auto_per_second = i32.max 1 (s.steps_auto_per_second - 1)
       else if key == SDLK_r
       then let (rng, grid) = init_grid gh gw s.rng s.scenario_id
-           let grids = copy s.grids :> *[scenario.n_scenarios][gh][gw]cell
+           let grids = copy s.grids :> *[scenarios.n_scenarios][gh][gw]cell
            let grids[s.scenario_id] = grid
            let cycle_checks = find_cycles grid
            in s with rng = rng
