@@ -132,13 +132,24 @@ let find_cycles [gh] [gw] (cells: [gh][gw]cell): [][gh][gw](direction flow) =
                   else let cell = cells[y, x]
                        let cell_dirs = cell.underlying.direction
                        in if cell_dirs.y != 0 && cell_dirs.x != 0
-                          then let grid_a = copy grid
-                               let grid_b = copy grid
-                               let grids[cur_grid] = (grid_a with [y, x] = {y=cell_dirs.y, x=0},
-                                                      (y + i64.i8 cell_dirs.y, x), (y_start, x_start))
-                               let grids = grids ++ [(grid_b with [y, x] = {y=0, x=cell_dirs.x},
-                                                      (y, x + i64.i8 cell_dirs.x), (y_start, x_start))]
-                               in (cur_grid, n_grids + 1, grids)
+                          then let (y_next, x_next) = (y + i64.i8 cell_dirs.y, x + i64.i8 cell_dirs.x)
+                               let (y_next_ok, x_next_ok) =
+                                 (in_bounds gh gw y_next x && cells[y_next, x].underlying.direction.y == cell_dirs.y,
+                                  in_bounds gh gw y x_next && cells[y, x_next].underlying.direction.x == cell_dirs.x)
+                               let y_grid g = (copy g with [y, x] = {y=cell_dirs.y, x=0},
+                                               (y_next, x), (y_start, x_start))
+                               let x_grid g = (copy g with [y, x] = {y=0, x=cell_dirs.x},
+                                               (y, x_next), (y_start, x_start))
+                               in if y_next_ok && x_next_ok
+                                  then let grid_b = copy grid
+                                       let grids[cur_grid] = y_grid grid
+                                       let grids = grids ++ [x_grid grid_b]
+                                       in (cur_grid, n_grids + 1, grids)
+                                  else if y_next_ok
+                                  then let grids[cur_grid] = y_grid grid
+                                       in (cur_grid, n_grids, grids)
+                                  else let grids[cur_grid] = x_grid grid
+                                       in (cur_grid, n_grids, grids)
                           else if cell_dirs.y != 0 || cell_dirs.x != 0
                           then let grids[cur_grid] = (copy grid with [y, x] = cell_dirs,
                                                       (y + i64.i8 cell_dirs.y, x + i64.i8 cell_dirs.x), (y_start, x_start))
