@@ -87,7 +87,7 @@ let add_cell [h] [w] (y: i64) (x: i64) (color: argb.colour) (direction: directio
 
 let nub_2d [l] [m] [n] (srcs: [l][m][n](direction flow)): [][m][n](direction flow) =
   let srcs' = zip srcs (0..<l)
-  let (srcs'', _) = unzip (filter (\(src0, i0) -> !(any (\(src, i) -> i < i0 && src0 == src) srcs')) srcs')
+  let (srcs'', _) = unzip (filter (\(src0, i0) -> all (\(src, i) -> i >= i0 || src0 != src) srcs') srcs')
   in srcs''
 
 let find_cycles [h] [w] (cells: [h][w]cell): [][h][w](direction flow) =
@@ -97,38 +97,53 @@ let find_cycles [h] [w] (cells: [h][w]cell): [][h][w](direction flow) =
   let empties () = replicate h (replicate w (empty_direction 0))
   let starts = flatten (map (\(y, x) ->
                                let cell_dir = cells[y, x].underlying.direction
-                               let start1 = (empties () with [y, x] = {y=cell_dir.y, x=0},
-                                             (y + i64.i8 cell_dir.y, x))
-                               let start2 = (empties () with [y, x] = {y=0, x=cell_dir.x},
-                                             (y, x + i64.i8 cell_dir.x))
-                               in [start1, start2]
+                               let (y_next, x_next) = (y + i64.i8 cell_dir.y,
+                                                       x + i64.i8 cell_dir.x)
+                               let (y_next_ok, x_next_ok) =
+                                 (in_bounds h w y_next x && cells[y_next, x].underlying.direction.y == cell_dir.y,
+                                  in_bounds h w y x_next && cells[y, x_next].underlying.direction.x == cell_dir.x)
+                               let y_start () = (empties () with [y, x] = {y=cell_dir.y, x=0},
+                                                 (y + i64.i8 cell_dir.y, x), (y, x))
+                               let x_start () = (empties () with [y, x] = {y=0, x=cell_dir.x},
+                                                 (y, x + i64.i8 cell_dir.x), (y, x))
+                               in if y_next_ok && x_next_ok
+                                  then [y_start (), x_start ()]
+                                  else if y_next_ok
+                                  then [y_start (), (empties (), (-1, -1), (-1, -1))]
+                                  else if x_next_ok
+                                  then [x_start (), (empties (), (-1, -1), (-1, -1))]
+                                  else [(empties (), (-1, -1), (-1, -1)), (empties (), (-1, -1), (-1, -1))]
                             ) corners)
+  let starts = filter (\(_, (y, _), _) -> y != -1) starts
   let n_starts = length starts
   let (_, n_grids, grids) =
     loop (cur_grid, n_grids, grids) = (0, n_starts, starts)
     while cur_grid < n_grids
-    do let (grid, (y, x)) = grids[cur_grid]
-       let grid_cell = grid[y, x]
-       in if grid_cell.y != 0 || grid_cell.x != 0 -- This means we have a cycle.
+    do let (grid, (y, x), (y_start, x_start)) = grids[cur_grid]
+       in if y == y_start && x == x_start -- This means we have a cycle.
           then (cur_grid + 1, n_grids, grids)
-          else let cell = cells[y, x]
-               let cell_dirs = cell.underlying.direction
-               in if cell_dirs.y != 0 && cell_dirs.x != 0
-                  then let grid_a = copy grid
-                       let grid_b = copy grid
-                       let grids[cur_grid] = (grid_a with [y, x] = {y=cell_dirs.y, x=0},
-                                              (y + i64.i8 cell_dirs.y, x))
-                       let grids = grids ++ [(grid_b with [y, x] = {y=0, x=cell_dirs.x},
-                                              (y, x + i64.i8 cell_dirs.x))]
-                       in (cur_grid, n_grids + 1, grids)
-                  else if cell_dirs.y != 0 || cell_dirs.x != 0
-                  then let grids[cur_grid] = (copy grid with [y, x] = cell_dirs,
-                                              (y + i64.i8 cell_dirs.y, x + i64.i8 cell_dirs.x))
-                       in (cur_grid, n_grids, grids)
-                  else let grids[cur_grid] = (copy grid, (-1, -1))
+          else let grid_cell = grid[y, x]
+               in if grid_cell.y != 0 || grid_cell.x != 0
+                  then let grids[cur_grid] = (copy grid, (-1, -1), (y_start, x_start))
                        in (cur_grid + 1, n_grids, grids)
-  let grids = grids[0:n_grids]
-  let grids = map (.0) (filter (\(_, (y, _)) -> y != -1) grids)
+                  else let cell = cells[y, x]
+                       let cell_dirs = cell.underlying.direction
+                       in if cell_dirs.y != 0 && cell_dirs.x != 0
+                          then let grid_a = copy grid
+                               let grid_b = copy grid
+                               let grids[cur_grid] = (grid_a with [y, x] = {y=cell_dirs.y, x=0},
+                                                      (y + i64.i8 cell_dirs.y, x), (y_start, x_start))
+                               let grids = grids ++ [(grid_b with [y, x] = {y=0, x=cell_dirs.x},
+                                                      (y, x + i64.i8 cell_dirs.x), (y_start, x_start))]
+                               in (cur_grid, n_grids + 1, grids)
+                          else if cell_dirs.y != 0 || cell_dirs.x != 0
+                          then let grids[cur_grid] = (copy grid with [y, x] = cell_dirs,
+                                                      (y + i64.i8 cell_dirs.y, x + i64.i8 cell_dirs.x), (y_start, x_start))
+                               in (cur_grid, n_grids, grids)
+                          else let grids[cur_grid] = (copy grid, (-1, -1), (y_start, x_start))
+                               in (cur_grid + 1, n_grids, grids)
+  let grids = grids[:n_grids]
+  let grids = map (.0) (filter (\(_, (y, _), _) -> y != -1) grids)
   let grids = nub_2d grids
   in grids
 
