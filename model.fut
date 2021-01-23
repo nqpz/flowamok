@@ -94,6 +94,7 @@ let nub_2d [l] [m] [n] (srcs: [l][m][n](direction flow)): [][m][n](direction flo
 -- FIXME: Consider if we maybe want to store the resulting mask in a sparse way
 -- instead.  Mostly relevant if we want to save space.
 let find_cycles [gh] [gw] (cells: [gh][gw]cell): [][gh][gw](direction flow) =
+  let in_bounds = in_bounds gh gw
   let is_corner (cell: cell): bool =
     cell.underlying.direction.y != 0 && cell.underlying.direction.x != 0
   let corners = filter (\(y, x) -> is_corner cells[y, x]) (flatten (tabulate_2d gh gw (\y x -> (y, x))))
@@ -103,8 +104,8 @@ let find_cycles [gh] [gw] (cells: [gh][gw]cell): [][gh][gw](direction flow) =
                                let (y_next, x_next) = (y + i64.i8 cell_dir.y,
                                                        x + i64.i8 cell_dir.x)
                                let (y_next_ok, x_next_ok) =
-                                 (in_bounds gh gw y_next x && cells[y_next, x].underlying.direction.y == cell_dir.y,
-                                  in_bounds gh gw y x_next && cells[y, x_next].underlying.direction.x == cell_dir.x)
+                                 (in_bounds y_next x && cells[y_next, x].underlying.direction.y == cell_dir.y,
+                                  in_bounds y x_next && cells[y, x_next].underlying.direction.x == cell_dir.x)
                                let y_start () = (empties () with [y, x] = {y=cell_dir.y, x=0},
                                                  (y + i64.i8 cell_dir.y, x), (y, x))
                                let x_start () = (empties () with [y, x] = {y=0, x=cell_dir.x},
@@ -134,8 +135,8 @@ let find_cycles [gh] [gw] (cells: [gh][gw]cell): [][gh][gw](direction flow) =
                        in if cell_dirs.y != 0 && cell_dirs.x != 0
                           then let (y_next, x_next) = (y + i64.i8 cell_dirs.y, x + i64.i8 cell_dirs.x)
                                let (y_next_ok, x_next_ok) =
-                                 (in_bounds gh gw y_next x && cells[y_next, x].underlying.direction.y == cell_dirs.y,
-                                  in_bounds gh gw y x_next && cells[y, x_next].underlying.direction.x == cell_dirs.x)
+                                 (in_bounds y_next x && cells[y_next, x].underlying.direction.y == cell_dirs.y,
+                                  in_bounds y x_next && cells[y, x_next].underlying.direction.x == cell_dirs.x)
                                let y_grid g = (copy g with [y, x] = {y=cell_dirs.y, x=0},
                                                (y_next, x), (y_start, x_start))
                                let x_grid g = (copy g with [y, x] = {y=0, x=cell_dirs.x},
@@ -164,6 +165,7 @@ let find_cycles [gh] [gw] (cells: [gh][gw]cell): [][gh][gw](direction flow) =
 let step [n_cycle_checks] (gh: i64) (gw: i64)
                           (cycle_checks: [n_cycle_checks][gh][gw](direction flow))
                           (cells: *[gh][gw]cell): *[gh][gw]cell =
+  let in_bounds = in_bounds gh gw
   let update_can_be_moved_to_from (cells: *[gh][gw]cell): *[gh][gw]cell =
     let update_can_be_moved_to_from_cell (y: i64) (x: i64): cell =
       let cell = cells[y, x]
@@ -172,7 +174,7 @@ let step [n_cycle_checks] (gh: i64) (gw: i64)
          else let (can_be_moved_to_from_calculated, can_be_moved_to_from_base) =
                 if is_occupied cell
                 then let (y_next, x_next) = (y + i64.i8 cell.direction.y, x + i64.i8 cell.direction.x)
-                     in if in_bounds gh gw y_next x_next
+                     in if in_bounds y_next x_next
                         then let cell_next = cells[y_next, x_next]
                              in if has_underlying cell_next
                                 then (cell_next.can_be_moved_to_from.calculated,
@@ -188,10 +190,10 @@ let step [n_cycle_checks] (gh: i64) (gw: i64)
                               then let y_prev = y - i64.i8 cell.underlying.direction.y
                                    let x_prev = x - i64.i8 cell.underlying.direction.x
                                    let cell_prev_y_occupied = cell.underlying.direction.y != 0 &&
-                                                              in_bounds gh gw y_prev x &&
+                                                              in_bounds y_prev x &&
                                                               cells[y_prev, x].direction.y != 0
                                    let cell_prev_x_occupied = cell.underlying.direction.x != 0 &&
-                                                              in_bounds gh gw y x_prev &&
+                                                              in_bounds y x_prev &&
                                                               cells[y, x_prev].direction.x != 0
                                    let (flow_y, flow_x, next_preference_flow_x) =
                                      match (cell_prev_y_occupied, cell_prev_x_occupied, cell.can_be_moved_to_from.next_preference_flow_x)
@@ -264,11 +266,11 @@ let step [n_cycle_checks] (gh: i64) (gw: i64)
        then let (y_prev, x_prev) = if cell.can_be_moved_to_from.direction.y
                                    then (y - i64.i8 cell.underlying.direction.y, x)
                                    else (y, x - i64.i8 cell.underlying.direction.x)
-            in if in_bounds gh gw y_prev x_prev
+            in if in_bounds y_prev x_prev
                then let cell_prev = cells[y_prev, x_prev]
                     let (flow_y_ok, flow_y_ok_isolated) =
                       if cell.underlying.direction.y != 0 &&
-                         in_bounds gh gw (y + i64.i8 cell.underlying.direction.y) x
+                         in_bounds (y + i64.i8 cell.underlying.direction.y) x
                       then let cell_next = cells[y + i64.i8 cell.underlying.direction.y, x]
                            let ok_base = cell_next.underlying.direction.y == cell.underlying.direction.y
                            in (ok_base, ok_base ||
@@ -276,7 +278,7 @@ let step [n_cycle_checks] (gh: i64) (gw: i64)
                       else (false, false)
                     let (flow_x_ok, flow_x_ok_isolated) =
                       if cell.underlying.direction.x != 0 &&
-                         in_bounds gh gw y (x + i64.i8 cell.underlying.direction.x)
+                         in_bounds y (x + i64.i8 cell.underlying.direction.x)
                       then let cell_next = cells[y, x + i64.i8 cell.underlying.direction.x]
                            let ok_base = cell_next.underlying.direction.x == cell.underlying.direction.x
                            in (ok_base, ok_base ||
@@ -299,7 +301,7 @@ let step [n_cycle_checks] (gh: i64) (gw: i64)
                             with underlying.rng = rng
                else cell
        else let (y_next, x_next) = (y + i64.i8 cell.direction.y, x + i64.i8 cell.direction.x)
-            in if in_bounds gh gw y_next x_next
+            in if in_bounds y_next x_next
                then let cell_next = cells[y_next, x_next]
                     in if (cell_next.can_be_moved_to_from.direction.y && cell.direction.y != 0) ||
                           (cell_next.can_be_moved_to_from.direction.x && cell.direction.x != 0)
