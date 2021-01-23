@@ -1,11 +1,5 @@
 import "model"
 
-module type scenario = {
-  val init [h] [w]: *[h][w]cell -> *[h][w]cell
-
-  val step [h] [w]: *[h][w]cell -> i64 -> rng -> (rng, bool, *[h][w]cell)
-}
-
 let random_color (rng: rng): (rng, argb.colour) =
   let (rng, color_r) = dist_f32.rand (0.2, 0.8) rng
   let (rng, color_g) = dist_f32.rand (0.2, 0.8) rng

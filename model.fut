@@ -354,3 +354,9 @@ let render (h: i64) (w: i64) (gh: i64) (gw: i64) (scale: i64) (grid: [gh][gw]cel
        else argb.black
 
   in tabulate_2d h w render_pixel
+
+module type scenario = {
+  val init [h] [w]: *[h][w]cell -> *[h][w]cell
+
+  val step [h] [w]: *[h][w]cell -> i64 -> rng -> (rng, bool, *[h][w]cell)
+}
