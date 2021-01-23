@@ -14,9 +14,10 @@ let scenario_init [h] [w] (sid: i64) (grid: *[h][w]cell): *[h][w]cell =
   case 7 -> scenario.independent_tight_cycles.init grid
   case 8 -> scenario.overlapping_tight_cycles.init grid
   case 9 -> scenario.hits_an_edge.init grid
+  case 10 -> scenario.adding_lines.init grid
   case _ -> grid
 
-let scenario_step [h] [w] (sid: i64) (grid: *[h][w]cell) (steps: i64) (rng: rng): (rng, *[h][w]cell) =
+let scenario_step [h] [w] (sid: i64) (grid: *[h][w]cell) (steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
   match sid
   case 0 -> scenario.single_fork.step grid steps rng
   case 1 -> scenario.tight_queues.step grid steps rng
@@ -28,7 +29,8 @@ let scenario_step [h] [w] (sid: i64) (grid: *[h][w]cell) (steps: i64) (rng: rng)
   case 7 -> scenario.independent_tight_cycles.step grid steps rng
   case 8 -> scenario.overlapping_tight_cycles.step grid steps rng
   case 9 -> scenario.hits_an_edge.step grid steps rng
-  case _ -> (rng, grid)
+  case 10 -> scenario.adding_lines.step grid steps rng
+  case _ -> (rng, false, grid)
 
 let s1 +++ s2 = s1 ++ "|" ++ s2
 let scenario_names =
@@ -42,32 +44,33 @@ let scenario_names =
   +++ "independent tight cycles"
   +++ "overlapping tight cycles"
   +++ "hits an edge"
+  +++ "adding lines"
 
 -- FIXME: Maybe this should be adjustable in some fashion.
 let scale = 10i64
 let gh = 108i64
 let gw = 192i64
 
-type text_content = (i32, i32, i32, i32, i64)
+type text_content = (i32, i32, i32, i32, i64, i64)
 module lys: lys with text_content = text_content = {
   type~ state =
     {h: i64, w: i64,
      auto: bool,
      rng: rng,
      time_unused: f32,
-     steps_auto: i64,
      steps_auto_per_second: i32,
-     steps: i64,
+     steps: []i64,
      grids: [][][]cell,
      cycle_checks: [][][](direction flow),
      scenario_id: i64}
 
   type text_content = text_content
 
-  let text_format () = "FPS: %d\nScenario: %[" ++ scenario_names ++ "]\nAuto: %[no|yes]\nSteps per second: %d\nCycles detected: %ld"
+  let text_format () = "FPS: %d\nScenario: %[" ++ scenario_names ++ "]\nAuto: %[no|yes]\nSteps per second: %d\nSteps: %ld\nCycles detected: %ld"
 
   let text_content (fps: f32) (s: state): text_content =
-    (t32 fps, i32.i64 s.scenario_id, i32.bool s.auto, s.steps_auto_per_second, length s.cycle_checks)
+    (t32 fps, i32.i64 s.scenario_id, i32.bool s.auto,
+     s.steps_auto_per_second, s.steps[s.scenario_id], length s.cycle_checks)
 
   let text_colour = const argb.white
 
@@ -84,7 +87,7 @@ module lys: lys with text_content = text_content = {
     let scenario_id = 0
     let cycle_checks = find_cycles grids[scenario_id]
     in {h, w, auto=false, rng, time_unused=0,
-        steps_auto=0, steps_auto_per_second=30, steps=0,
+        steps_auto_per_second=30, steps=replicate scenario.n_scenarios 0,
         grids, cycle_checks, scenario_id}
 
   let grab_mouse = false
@@ -95,14 +98,22 @@ module lys: lys with text_content = text_content = {
 
   let step (s: state) (n_steps: i64): state =
     let grids = copy s.grids :> *[scenario.n_scenarios][gh][gw]cell
-    let grid = copy grids[s.scenario_id]
     let cycle_checks = s.cycle_checks :> [][gh][gw](direction flow)
-    let grid = loop grid for _i < n_steps do step gh gw cycle_checks grid
-    let (rng, grid) = scenario_step s.scenario_id grid s.steps s.rng
-    let grids[s.scenario_id] = grid
+    let steps = copy s.steps
+    let (rng, grid, cycle_checks, step_cur) =
+      loop (rng, grid, cycle_checks, step_cur) =
+        (s.rng, copy grids[s.scenario_id], cycle_checks, steps[s.scenario_id])
+      for _i < n_steps
+      do let grid = step gh gw cycle_checks grid
+         let (rng, recompute_cycles, grid) = scenario_step s.scenario_id grid step_cur rng
+         let cycle_checks = if recompute_cycles
+                            then copy (find_cycles grid)
+                            else cycle_checks
+         in (rng, grid, cycle_checks, step_cur + 1)
     in s with rng = rng
-         with steps = s.steps + n_steps
-         with grids = grids
+         with steps = (steps with [s.scenario_id] = step_cur)
+         with grids = (grids with [s.scenario_id] = grid)
+         with cycle_checks = cycle_checks
 
 let event (e: event) (s: state): state =
     match e
@@ -114,7 +125,6 @@ let event (e: event) (s: state): state =
            let time_unused = time_total - f32.i64 steps_new' / f32.i32 s.steps_auto_per_second
            let s = step s steps_new'
            in s with time_unused = time_unused
-                with steps_auto = s.steps_auto + steps_new'
       else s
     case #keydown {key} ->
       if key == SDLK_SPACE
@@ -148,6 +158,7 @@ let event (e: event) (s: state): state =
            in s with rng = rng
                 with grids = grids
                 with cycle_checks = cycle_checks
+                with steps = (copy s.steps with [s.scenario_id] = 0)
                 with auto = false
       else s
     case _ ->
