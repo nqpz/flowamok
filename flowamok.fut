@@ -47,7 +47,6 @@ let scenario_names =
   +++ "adding lines"
 
 -- FIXME: Maybe this should be adjustable in some fashion.
-let scale = 10i64
 let gh = 108i64
 let gw = 192i64
 
@@ -55,6 +54,7 @@ type text_content = (i32, i32, i32, i32, i64, i64)
 module lys: lys with text_content = text_content = {
   type~ state =
     {h: i64, w: i64,
+     scale: i64,
      auto: bool,
      rng: rng,
      time_unused: f32,
@@ -86,7 +86,7 @@ module lys: lys with text_content = text_content = {
     let rng = rnge.join_rng rngs
     let scenario_id = 0
     let cycle_checks = find_cycles grids[scenario_id]
-    in {h, w, auto=false, rng, time_unused=0,
+    in {h, w, scale=10, auto=false, rng, time_unused=0,
         steps_auto_per_second=30, steps=replicate scenarios.n_scenarios 0,
         grids, cycle_checks, scenario_id}
 
@@ -160,10 +160,14 @@ let event (e: event) (s: state): state =
                 with cycle_checks = cycle_checks
                 with steps = (copy s.steps with [s.scenario_id] = 0)
                 with auto = false
+      else if key == SDLK_1
+      then s with scale = s.scale + 1
+      else if key == SDLK_2
+      then s with scale = i64.max 1 (s.scale - 1)
       else s
     case _ ->
       s
 
   let render (s: state): [][]argb.colour =
-    render s.h s.w gh gw scale (s.grids[s.scenario_id] :> [gh][gw]cell)
+    render s.h s.w gh gw s.scale (s.grids[s.scenario_id] :> [gh][gw]cell)
 }
