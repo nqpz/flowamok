@@ -15,6 +15,7 @@ let scenario_init [gh] [gw] (sid: i64) (grid: *[gh][gw]cell): *[gh][gw]cell =
   case 8 -> scenarios.overlapping_tight_cycles.init grid
   case 9 -> scenarios.hits_an_edge.init grid
   case 10 -> scenarios.adding_lines.init grid
+  case 11 -> scenarios.multi_spill.init grid
   case _ -> grid
 
 let scenario_step [gh] [gw] (sid: i64) (grid: *[gh][gw]cell) (steps: i64) (rng: rng): (rng, bool, *[gh][gw]cell) =
@@ -30,6 +31,7 @@ let scenario_step [gh] [gw] (sid: i64) (grid: *[gh][gw]cell) (steps: i64) (rng: 
   case 8 -> scenarios.overlapping_tight_cycles.step grid steps rng
   case 9 -> scenarios.hits_an_edge.step grid steps rng
   case 10 -> scenarios.adding_lines.step grid steps rng
+  case 11 -> scenarios.multi_spill.step grid steps rng
   case _ -> (rng, false, grid)
 
 let s1 +++ s2 = s1 ++ "|" ++ s2
@@ -45,6 +47,7 @@ let scenario_names =
   +++ "overlapping tight cycles"
   +++ "hits an edge"
   +++ "adding lines"
+  +++ "multi spill"
 
 -- FIXME: Maybe this should be adjustable in some fashion.
 let gh = 108i64

@@ -195,4 +195,22 @@ module adding_lines: scenario = {
        else (rng, recompute_cycles, grid)
 }
 
-let n_scenarios = 11i64
+module multi_spill: scenario = {
+  let init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
+    let grid = add_line_vertical 1 9 10 1 grid
+    let grid = add_line_horizontal 10 1 9 1 grid
+    let grid = add_line_vertical 11 19 10 (-1) grid
+    let grid = add_line_horizontal 10 11 19 (-1) grid
+    in grid
+
+  let step [h] [w] (grid: *[h][w]cell) (steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
+    if steps % 5 == 0
+    then let grid = add_cell 1 10 argb.red {y=1, x=0} grid
+         let grid = add_cell 10 1 argb.blue {y=0, x=1} grid
+         let grid = add_cell 19 10 argb.green {y= -1, x=0} grid
+         let grid = add_cell 10 19 argb.yellow {y=0, x= -1} grid
+         in (rng, false, grid)
+    else (rng, false, grid)
+}
+
+let n_scenarios = 12i64
