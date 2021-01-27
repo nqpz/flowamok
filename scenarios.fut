@@ -1,5 +1,5 @@
 import "lib/github.com/athas/matte/colour"
-import "model"
+import "flowamok"
 
 let random_color (rng: rng): (rng, argb.colour) =
   let (rng, color_r) = dist_f32.rand (0.2, 0.8) rng

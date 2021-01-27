@@ -1,7 +1,7 @@
 -- | Basic animation support.  For a more full-featured interactive use, see
 -- `explorer.fut`.
 
-import "model"
+import "flowamok"
 
 type state [n_cycles] [gh] [gw] =
   {grid: [gh][gw]cell,

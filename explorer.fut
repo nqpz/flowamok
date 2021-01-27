@@ -1,5 +1,5 @@
 import "lib/github.com/diku-dk/lys/lys"
-import "model"
+import "flowamok"
 module scenarios = import "scenarios"
 
 let scenario_init [gh] [gw] (sid: i64) (grid: *[gh][gw]cell): *[gh][gw]cell =
