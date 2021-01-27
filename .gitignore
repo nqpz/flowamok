@@ -2,6 +2,6 @@
 /*.c
 /*.o
 /*.h
-/flowamok_wrapper.fut
-/flowamok
+/explorer_wrapper.fut
+/explorer
 README

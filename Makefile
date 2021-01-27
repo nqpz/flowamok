@@ -1,4 +1,4 @@
-PROGNAME=flowamok
+PROGNAME=explorer
 include lib/github.com/diku-dk/lys/common.mk
 
 README.md: $(PROG_FUT_DEPS)

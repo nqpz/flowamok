@@ -1,5 +1,5 @@
 -- | Basic animation support.  For a more full-featured interactive use, see
--- flowamok.fut.
+-- `explorer.fut`.
 
 import "model"
 
