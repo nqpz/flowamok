@@ -36,5 +36,5 @@ let step = anim.step
 -- - Up arrow key: Increment the steps per second in the auto-stepping mode.
 -- - Down arrow key: Decrement the steps per second in the auto-stepping mode.
 -- - `r`: Reset the current grid and stop auto-stepping.
--- - '1': Zoom in.
--- - '2': Zoom out.
+-- - `1`: Zoom in.
+-- - `2`: Zoom out.
