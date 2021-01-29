@@ -2,35 +2,53 @@ import "lib/github.com/diku-dk/lys/lys"
 import "flowamok"
 module scenarios = import "scenarios"
 
-let scenario_init [gh] [gw] (sid: i64) (grid: *[gh][gw]cell): *[gh][gw]cell =
+module type scenario_init_step = {
+  val init_step [gh] [gw]: *[gh][gw]cell -> *[gh][gw]cell -> i64 -> rng -> (*[gh][gw]cell, (rng, bool, *[gh][gw]cell))
+}
+
+module mk_init_step (scenario: scenario): scenario_init_step = {
+  let init_step [gh] [gw] (init_grid: *[gh][gw]cell) (step_grid: *[gh][gw]cell) (step_steps: i64) (step_rng: rng): (*[gh][gw]cell, (rng, bool, *[gh][gw]cell)) =
+    (scenario.init init_grid, scenario.step step_grid step_steps step_rng)
+}
+
+module S00 = mk_init_step scenarios.single_fork
+module S01 = mk_init_step scenarios.tight_queues
+module S02 = mk_init_step scenarios.basic_cycle
+module S03 = mk_init_step scenarios.crossing
+module S04 = mk_init_step scenarios.close_crossing
+module S05 = mk_init_step scenarios.crossroads
+module S06 = mk_init_step scenarios.small_tight_cycle
+module S07 = mk_init_step scenarios.independent_tight_cycles
+module S08 = mk_init_step scenarios.overlapping_tight_cycles
+module S09 = mk_init_step scenarios.hits_an_edge
+module S10 = mk_init_step scenarios.adding_lines
+module S11 = mk_init_step scenarios.multi_spill
+
+let scenario_init_step [gh] [gw] (sid: i64) (a: *[gh][gw]cell) (b: *[gh][gw]cell) (c: i64) (d: rng): (*[gh][gw]cell, (rng, bool, *[gh][gw]cell)) =
   match sid
-  case 0 -> scenarios.single_fork.init grid
-  case 1 -> scenarios.tight_queues.init grid
-  case 2 -> scenarios.basic_cycle.init grid
-  case 3 -> scenarios.crossing.init grid
-  case 4 -> scenarios.close_crossing.init grid
-  case 5 -> scenarios.crossroads.init grid
-  case 6 -> scenarios.small_tight_cycle.init grid
-  case 7 -> scenarios.independent_tight_cycles.init grid
-  case 8 -> scenarios.overlapping_tight_cycles.init grid
-  case 9 -> scenarios.hits_an_edge.init grid
-  case 10 -> scenarios.adding_lines.init grid
-  case _ -> scenarios.multi_spill.init grid
+  case 00 -> S00.init_step a b c d
+  case 01 -> S01.init_step a b c d
+  case 02 -> S02.init_step a b c d
+  case 03 -> S03.init_step a b c d
+  case 04 -> S04.init_step a b c d
+  case 05 -> S05.init_step a b c d
+  case 06 -> S06.init_step a b c d
+  case 07 -> S07.init_step a b c d
+  case 08 -> S08.init_step a b c d
+  case 09 -> S09.init_step a b c d
+  case 10 -> S10.init_step a b c d
+  case 11 -> S11.init_step a b c d
+  case _ -> (a, (d, false, b))
+
+let dummy_rng () = rnge.rng_from_seed [0]
+
+let dummy_grid gh gw = replicate gh (replicate gw (create_cell (dummy_rng ())))
+
+let scenario_init [gh] [gw] (sid: i64) (grid: *[gh][gw]cell): *[gh][gw]cell =
+  (scenario_init_step sid grid (dummy_grid gh gw) 0 (dummy_rng ())).0
 
 let scenario_step [gh] [gw] (sid: i64) (grid: *[gh][gw]cell) (steps: i64) (rng: rng): (rng, bool, *[gh][gw]cell) =
-  match sid
-  case 0 -> scenarios.single_fork.step grid steps rng
-  case 1 -> scenarios.tight_queues.step grid steps rng
-  case 2 -> scenarios.basic_cycle.step grid steps rng
-  case 3 -> scenarios.crossing.step grid steps rng
-  case 4 -> scenarios.close_crossing.step grid steps rng
-  case 5 -> scenarios.crossroads.step grid steps rng
-  case 6 -> scenarios.small_tight_cycle.step grid steps rng
-  case 7 -> scenarios.independent_tight_cycles.step grid steps rng
-  case 8 -> scenarios.overlapping_tight_cycles.step grid steps rng
-  case 9 -> scenarios.hits_an_edge.step grid steps rng
-  case 10 -> scenarios.adding_lines.step grid steps rng
-  case _ -> scenarios.multi_spill.step grid steps rng
+  (scenario_init_step sid (dummy_grid gh gw) grid steps rng).1
 
 let s1 +++ s2 = s1 ++ "|" ++ s2
 let scenario_names =
