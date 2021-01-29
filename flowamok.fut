@@ -1,5 +1,5 @@
 import "lib/github.com/diku-dk/cpprandom/random"
-import "lib/github.com/athas/matte/colour"
+import "lib/github.com/diku-dk/lys/lys"
 
 module rnge = pcg32
 module dist_i8 = uniform_int_distribution i8 rnge
@@ -386,6 +386,8 @@ let render (h: i64) (w: i64) (gh: i64) (gw: i64) (scale: i64) (grid: [gh][gw]cel
   in tabulate_2d h w render_pixel
 
 module type scenario = {
+  val name: () -> string []
+
   val init [gh] [gw]: *[gh][gw]cell -> *[gh][gw]cell
 
   val step [gh] [gw]: *[gh][gw]cell -> i64 -> rng -> (rng, bool, *[gh][gw]cell)

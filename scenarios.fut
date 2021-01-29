@@ -8,6 +8,8 @@ let random_color (rng: rng): (rng, argb.colour) =
   in (rng, argb.from_rgba color_r color_g color_b 1.0)
 
 module single_fork: scenario = {
+  let name () = "single fork"
+
   let init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
     let grid = add_line_horizontal 10 10 20 1 grid
     let grid = add_line_vertical 10 40 20 1 grid
@@ -22,6 +24,8 @@ module single_fork: scenario = {
 }
 
 module tight_queues: scenario = {
+  let name () = "tight queues"
+
   let init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
     let grid = add_line_horizontal 40 10 20 1 grid
     let grid = add_line_vertical 10 40 20 (-1) grid
@@ -33,6 +37,8 @@ module tight_queues: scenario = {
 }
 
 module basic_cycle: scenario = {
+  let name () = "basic cycle"
+
   let init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
     let grid = add_line_horizontal 10 10 30 1 grid
     let grid = add_line_vertical 10 30 30 1 grid
@@ -49,6 +55,8 @@ module basic_cycle: scenario = {
 }
 
 module crossing: scenario = {
+  let name () = "crossing"
+
   let init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
     let grid = add_line_horizontal 20 10 30 1 grid
     let grid = add_line_vertical 10 30 20 1 grid
@@ -63,6 +71,8 @@ module crossing: scenario = {
 }
 
 module close_crossing: scenario = {
+  let name () = "close crossing"
+
   let init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
     let grid = add_line_horizontal 20 10 30 1 grid
     let grid = add_line_vertical 10 30 20 1 grid
@@ -77,6 +87,8 @@ module close_crossing: scenario = {
 }
 
 module crossroads: scenario = {
+  let name () = "crossroads"
+
   let init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
     let grid = add_line_horizontal 29 1 58 (-1) grid
     let grid = add_line_horizontal 30 1 58 1 grid
@@ -105,6 +117,8 @@ module crossroads: scenario = {
 }
 
 module small_tight_cycle: scenario = {
+  let name () = "small tight cycle"
+
   let init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
     let grid = add_line_horizontal 11 11 13 1 grid
     let grid = add_line_vertical 11 13 13 1 grid
@@ -121,6 +135,8 @@ module small_tight_cycle: scenario = {
 }
 
 module independent_tight_cycles: scenario = {
+  let name () = "independent tight cycles"
+
   let init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
     let grid = small_tight_cycle.init grid
     let grid = add_line_horizontal 10 10 14 (-1) grid
@@ -138,6 +154,8 @@ module independent_tight_cycles: scenario = {
 }
 
 module overlapping_tight_cycles: scenario = {
+  let name () = "overlapping tight cycles"
+
   let init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
     let grid = add_line_horizontal 10 10 14 (-1) grid
     let grid = add_line_vertical 10 24 14 (-1) grid
@@ -164,6 +182,8 @@ module overlapping_tight_cycles: scenario = {
 }
 
 module hits_an_edge: scenario = {
+  let name () = "hits an edge"
+
   let init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
     let grid = add_line_horizontal 10 5 15 1 grid
     let grid = add_line_vertical 5 15 16 (-1) grid
@@ -175,6 +195,8 @@ module hits_an_edge: scenario = {
 }
 
 module adding_lines: scenario = {
+  let name () = "adding lines"
+
   let init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
     let grid = add_line_horizontal 1 1 6 1 grid
     in grid
@@ -196,6 +218,8 @@ module adding_lines: scenario = {
 }
 
 module multi_spill: scenario = {
+  let name () = "multi spill"
+
   let init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
     let grid = add_line_vertical 1 9 10 1 grid
     let grid = add_line_horizontal 10 1 9 1 grid
@@ -212,5 +236,3 @@ module multi_spill: scenario = {
          in (rng, false, grid)
     else (rng, false, grid)
 }
-
-let n_scenarios = 12i64
