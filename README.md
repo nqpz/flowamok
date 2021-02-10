@@ -8,30 +8,33 @@ It's a stencil and then some.  Work in progress!
 
 ```futhark
 import "animation"
-module scenarios = import "scenarios"
+module scenarios = import "explorer/scenarios"
 module anim = mk_anim scenarios.overlapping_tight_cycles
 let init = anim.init
 let step = anim.step
 ```
 
 ```
-> :anim (step, init 30i64 30i64 10i64 123i32, 400i64)
+> :video (step, init 30i64 30i64 10i64 123i32, 400i64)
 ```
 
 
-![](README-img/anim4.gif)
+![](README-img/video4.gif)
 
+
+## Basic building
+
+Requires [Futhark](http://futhark-lang.org) and SDL2 and SDL2-ttf
+libraries with associated header files.
+
+First run `futhark pkg sync` once.  Then choose which interface you want to
+build (currently only one).
 
 ## Scenario explorer
 
 Explore different hand-crafted scenarios.
 
-Requires [Futhark](http://futhark-lang.org) and SDL2 and SDL2-ttf
-libraries with associated header files.
-
-First run `futhark pkg sync` once.
-
-Then run `make run` to build and run in a window.
+Run `make explorer/explorer && explorer/explorer` to build and run in a window.
 
 ### Controls
 

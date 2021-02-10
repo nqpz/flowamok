@@ -7,24 +7,27 @@
 -- ## What it looks like
 
 import "animation"
-module scenarios = import "scenarios"
+module scenarios = import "explorer/scenarios"
 module anim = mk_anim scenarios.overlapping_tight_cycles
 let init = anim.init
 let step = anim.step
 
--- > :brief :anim (step, init 30i64 30i64 10i64 123i32, 400i64);
+-- > :brief :video (step, init 30i64 30i64 10i64 123i32, 400i64);
 -- format: gif
 
--- ## Scenario explorer
---
--- Explore different hand-crafted scenarios.
+-- ## Basic building
 --
 -- Requires [Futhark](http://futhark-lang.org) and SDL2 and SDL2-ttf
 -- libraries with associated header files.
 --
--- First run `futhark pkg sync` once.
+-- First run `futhark pkg sync` once.  Then choose which interface you want to
+-- build (currently only one).
 --
--- Then run `make run` to build and run in a window.
+-- ## Scenario explorer
+--
+-- Explore different hand-crafted scenarios.
+--
+-- Run `make explorer/explorer && explorer/explorer` to build and run in a window.
 --
 -- ### Controls
 --

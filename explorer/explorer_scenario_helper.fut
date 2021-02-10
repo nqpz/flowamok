@@ -1,5 +1,5 @@
-import "lib/github.com/diku-dk/lys/lys"
-import "flowamok"
+import "../lib/github.com/diku-dk/lys/lys"
+import "../flowamok"
 
 module type scenario_helper_exposed = {
   val name: i64 -> string []

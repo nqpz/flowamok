@@ -1,5 +1,5 @@
-import "lib/github.com/diku-dk/lys/lys"
-import "flowamok"
+import "../lib/github.com/diku-dk/lys/lys"
+import "../flowamok"
 
 module explorer_scenario_helper = import "explorer_scenario_helper"
 module scenario = explorer_scenario_helper.mk_scenario_helper_exposed {

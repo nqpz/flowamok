@@ -1,6 +1,11 @@
-PROGNAME=explorer
-include lib/github.com/diku-dk/lys/common.mk
+all: explorer/explorer README.md
 
-README.md: $(PROG_FUT_DEPS)
+explorer/explorer:
+	$(MAKE) -C explorer explorer
+
+README.md: $(shell find -name \*.fut)
 	futhark literate --backend=$(LYS_BACKEND) --stop-on-error README.fut
-	rm README.c README
+
+clean:
+	$(MAKE) -C explorer clean
+	rm -f README.c README
