@@ -1,5 +1,6 @@
 all: explorer/explorer README.md
 
+.PHONY: explorer/explorer
 explorer/explorer:
 	$(MAKE) -C explorer explorer
 
