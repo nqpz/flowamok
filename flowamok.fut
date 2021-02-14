@@ -127,6 +127,8 @@ let reduce1 't (f: t -> t -> t) (ts: []t) : with_neutral t =
 --
 -- FIXME: Consider if we maybe want to store the resulting mask in a sparse way
 -- instead.  Mostly relevant if we want to save space.
+--
+-- FIXME: This is really slow.
 let find_cycles 'aux [gh] [gw] (cells: [gh][gw](cell aux)): [][gh][gw](direction flow) =
   let in_bounds = in_bounds gh gw
   let is_corner (cell: cell aux): bool =

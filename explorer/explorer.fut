@@ -18,6 +18,7 @@ module scenario = explorer_scenario_helper.mk_scenario_helper_exposed {
   module S09 = mk_scenario_helper hits_an_edge
   module S10 = mk_scenario_helper adding_lines
   module S11 = mk_scenario_helper multi_spill
+  module S12 = mk_scenario_helper (mk_many_cycles { let n = 2i64 })
 
   let scenario_helper [gh] [gw] (sid: i64)
                       (a: *[gh][gw]cell) (b: *[gh][gw]cell) (c: i64) (d: rng):
@@ -35,6 +36,7 @@ module scenario = explorer_scenario_helper.mk_scenario_helper_exposed {
     case 09 -> S09.helper a b c d
     case 10 -> S10.helper a b c d
     case 11 -> S11.helper a b c d
+    case 12 -> S12.helper a b c d
     case _ -> (a, (d, false, b), "")
 }
 

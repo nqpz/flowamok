@@ -238,3 +238,27 @@ module multi_spill: scenario = {
          in (rng, false, grid)
     else (rng, false, grid)
 }
+
+-- Examine how the cycle detection algorithm fares with a lot of cycles.
+module mk_many_cycles (input: { val n: i64 }): scenario = {
+  let n = input.n
+
+  let name () = "many cycles (n = " ++ ['0' + u8.i64 n] ++ ")"
+
+  let init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
+    let (yo, xo) = (19, 10)
+    let grid =
+      loop grid for y < n
+      do loop grid for x < n
+         do let (y', x') = (y + 1, x + 1)
+            let grid = add_line_horizontal (yo + 10 * y) (xo + 10 * x) (xo + 10 * x' - i64.bool (x == n - 1)) 1 grid
+            let grid = add_line_vertical (yo + 10 * y) (yo + 10 * y' - i64.bool (y == n -1)) (xo + 10 * x' - 1) 1 grid
+            let grid = add_line_horizontal (yo + 10 * y' - 1) (xo + 10 * x - 1 + i64.bool (x == 0)) (xo + 10 * x' - 1) (-1) grid
+            let grid = add_line_vertical (yo + 10 * y - 1 + i64.bool (y == 0)) (yo + 10 * y' - 1) (xo + 10 * x) (-1) grid
+            in grid
+    let grid = add_cell yo xo argb.green {y=0, x=1} grid
+    in grid
+
+  let step [h] [w] (grid: *[h][w]cell) (_steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
+    (rng, false, grid)
+}
