@@ -1,3 +1,5 @@
+LYS_BACKEND?=opencl
+
 all: explorer/explorer README.md
 
 .PHONY: explorer/explorer
