@@ -21,7 +21,7 @@ module mk_anim (scenario: scenario) = {
     let (h, w) = (gh * s.scale, gw * s.scale)
     let pixels = render h w gh gw s.scale s.grid
     let grid = copy s.grid
-    let grid = step gh gw s.cycles grid
+    let (grid, _) = step gh gw s.cycles grid choose_direction_random
     let (rng, recompute_cycles, grid) = scenario.step grid s.steps s.rng
     let cycles = if recompute_cycles
                  then find_cycles grid

@@ -42,7 +42,7 @@ module scenario = explorer_scenario_helper.mk_scenario_helper_exposed {
 let gh = 108i64
 let gw = 192i64
 
-type text_content = (i32, i32, i32, i32, i64, i64)
+type text_content = (i32, i32, i32, i32, i64, i64, i64)
 module lys: lys with text_content = text_content = {
   type~ state =
     {h: i64, w: i64,
@@ -54,6 +54,7 @@ module lys: lys with text_content = text_content = {
      steps: []i64,
      grids: [][][]cell,
      cycle_checks: [][][](direction flow),
+     n_cell_leaks: i64,
      scenario_id: i64}
 
   type text_content = text_content
@@ -63,11 +64,12 @@ module lys: lys with text_content = text_content = {
       loop s = scenario.name 0
       for i < scenario.n_scenarios - 1
       do s ++ "|" ++ scenario.name (i + 1)
-    in "FPS: %d\nScenario: %[" ++ scenario_names ++ "]\nAuto: %[no|yes]\nSteps per second: %d\nSteps: %ld\nCycles detected: %ld"
+    in "FPS: %d\nScenario: %[" ++ scenario_names ++ "]\nAuto: %[no|yes]\nSteps per second: %d\nSteps: %ld\nCycles detected: %ld\nCell leaks this step: %ld"
 
   let text_content (fps: f32) (s: state): text_content =
     (t32 fps, i32.i64 s.scenario_id, i32.bool s.auto,
-     s.steps_auto_per_second, s.steps[s.scenario_id], length s.cycle_checks)
+     s.steps_auto_per_second, s.steps[s.scenario_id], length s.cycle_checks,
+     s.n_cell_leaks)
 
   let text_colour = const argb.white
 
@@ -85,7 +87,7 @@ module lys: lys with text_content = text_content = {
     let cycle_checks = find_cycles grids[scenario_id]
     in {h, w, scale=10, auto=false, rng, time_unused=0,
         steps_auto_per_second=30, steps=replicate scenario.n_scenarios 0,
-        grids, cycle_checks, scenario_id}
+        grids, cycle_checks, n_cell_leaks=0, scenario_id}
 
   let grab_mouse = false
 
@@ -97,20 +99,21 @@ module lys: lys with text_content = text_content = {
     let grids = copy s.grids :> *[scenario.n_scenarios][gh][gw]cell
     let cycle_checks = s.cycle_checks :> [][gh][gw](direction flow)
     let steps = copy s.steps
-    let (rng, grid, cycle_checks, step_cur) =
-      loop (rng, grid, cycle_checks, step_cur) =
-        (s.rng, copy grids[s.scenario_id], cycle_checks, steps[s.scenario_id])
+    let (rng, grid, cycle_checks, step_cur, n_cell_leaks) =
+      loop (rng, grid, cycle_checks, step_cur, n_cell_leaks) =
+        (s.rng, copy grids[s.scenario_id], cycle_checks, steps[s.scenario_id], 0)
       for _i < n_steps
-      do let grid = step gh gw cycle_checks grid
+      do let (grid, cell_leaks) = step gh gw cycle_checks grid choose_direction_random
          let (rng, recompute_cycles, grid) = scenario.step s.scenario_id grid step_cur rng
          let cycle_checks = if recompute_cycles
                             then copy (find_cycles grid)
                             else cycle_checks
-         in (rng, grid, cycle_checks, step_cur + 1)
+         in (rng, grid, cycle_checks, step_cur + 1, n_cell_leaks + length cell_leaks)
     in s with rng = rng
          with steps = (steps with [s.scenario_id] = step_cur)
          with grids = (grids with [s.scenario_id] = grid)
          with cycle_checks = cycle_checks
+         with n_cell_leaks = n_cell_leaks
 
 let event (e: event) (s: state): state =
     match e
@@ -120,7 +123,9 @@ let event (e: event) (s: state): state =
            let steps_new = time_total * f32.i32 s.steps_auto_per_second
            let steps_new' = i64.f32 steps_new
            let time_unused = time_total - f32.i64 steps_new' / f32.i32 s.steps_auto_per_second
-           let s = step s steps_new'
+           let s = if steps_new' > 0
+                   then step s steps_new'
+                   else s
            in s with time_unused = time_unused
       else s
     case #keydown {key} ->
@@ -136,6 +141,7 @@ let event (e: event) (s: state): state =
            let cycle_checks = find_cycles s.grids[scenario_id]
            in s with scenario_id = scenario_id
                 with cycle_checks = cycle_checks
+                with n_cell_leaks = 0
       else if key == SDLK_RIGHT
       then let scenario_id = (s.scenario_id + 1) % scenario.n_scenarios
            let cycle_checks = find_cycles s.grids[scenario_id]
