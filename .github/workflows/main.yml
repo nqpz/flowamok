@@ -25,4 +25,4 @@ jobs:
 
     - run: futhark pkg sync
 
-    - run: make
+    - run: make explorer/explorer
