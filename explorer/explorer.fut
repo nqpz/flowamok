@@ -38,6 +38,8 @@ module scenario = explorer_scenario_helper.mk_scenario_helper_exposed {
     case _ -> (a, (d, false, b), "")
 }
 
+type cell = cell ()
+
 -- FIXME: Maybe this should be adjustable in some fashion.
 let gh = 108i64
 let gw = 192i64
@@ -74,7 +76,7 @@ module lys: lys with text_content = text_content = {
   let text_colour = const argb.white
 
   let init_grid (gh: i64) (gw: i64) (rng: rng) (scenario_id: i64): (rng, [gh][gw]cell) =
-    let (rng, grid) = create_grid gh gw rng
+    let (rng, grid) = create_grid gh gw () rng
     let grid = scenario.init scenario_id grid
     in (rng, grid)
 
@@ -103,7 +105,7 @@ module lys: lys with text_content = text_content = {
       loop (rng, grid, cycle_checks, step_cur, n_cell_leaks) =
         (s.rng, copy grids[s.scenario_id], cycle_checks, steps[s.scenario_id], 0)
       for _i < n_steps
-      do let (grid, cell_leaks) = step gh gw cycle_checks grid choose_direction_random
+      do let (grid, cell_leaks) = step gh gw cycle_checks grid choose_direction_random ()
          let (rng, recompute_cycles, grid) = scenario.step s.scenario_id grid step_cur rng
          let cycle_checks = if recompute_cycles
                             then copy (find_cycles grid)

@@ -33,11 +33,12 @@ type can_be_moved_to_from =
    direction: direction bool,
    next_preference_flow_x: bool}
 
-type cell =
+type cell 'aux =
   {underlying: underlying,
    direction: direction flow,
    color: argb.colour,
-   can_be_moved_to_from: can_be_moved_to_from}
+   can_be_moved_to_from: can_be_moved_to_from,
+   aux: aux}
 
 let empty_direction 'base (empty: base): direction base =
   {y=empty, x=empty}
@@ -51,20 +52,21 @@ let empty_can_be_moved_to_from: can_be_moved_to_from =
    direction=empty_direction false,
    next_preference_flow_x=false}
 
-let create_cell (rng: rng): cell =
+let create_cell 'aux (aux: aux) (rng: rng): cell aux =
   {underlying=create_underlying rng,
    direction=empty_direction 0,
    color=argb.white,
-   can_be_moved_to_from=empty_can_be_moved_to_from}
+   can_be_moved_to_from=empty_can_be_moved_to_from,
+   aux=aux}
 
-type cell_leak = (i64, i64, cell)
-let cell_leak_dummy_element: cell_leak =
-  (-1, -1, create_cell (rnge.rng_from_seed [0]))
+type cell_leak 'aux = (i64, i64, cell aux)
+let cell_leak_dummy_element 'aux (aux: aux): cell_leak aux =
+  (-1, -1, create_cell aux (rnge.rng_from_seed [0]))
 
-let has_underlying (cell: cell): bool =
+let has_underlying 'aux (cell: cell aux): bool =
   cell.underlying.direction.y != 0 || cell.underlying.direction.x != 0
 
-let is_occupied (cell: cell): bool =
+let is_occupied 'aux (cell: cell aux): bool =
   cell.direction.y != 0 || cell.direction.x != 0
 
 let flatten_coordinate (gw: i64) (y: i64) (x: i64): i64 =
@@ -73,29 +75,29 @@ let flatten_coordinate (gw: i64) (y: i64) (x: i64): i64 =
 let in_bounds (h: i64) (w: i64) (y: i64) (x: i64): bool =
   y >= 0 && y < h && x >= 0 && x < w
 
-let create_grid (gh: i64) (gw: i64) (rng: rng): (rng, *[gh][gw]cell) =
+let create_grid 'aux (gh: i64) (gw: i64) (aux: aux) (rng: rng): (rng, *[gh][gw](cell aux)) =
   let n = gh * gw
   let rngs = rnge.split_rng n rng
-  let cells = map create_cell rngs
+  let cells = map (create_cell aux) rngs
   in (rnge.join_rng rngs, unflatten gh gw cells)
 
-let add_line_vertical [gh] [gw] (y_start: i64) (y_end: i64) (x: i64) (flow: flow) (cells: *[gh][gw]cell):
-                      *[gh][gw]cell =
+let add_line_vertical 'aux [gh] [gw] (y_start: i64) (y_end: i64) (x: i64) (flow: flow) (cells: *[gh][gw](cell aux)):
+                      *[gh][gw](cell aux) =
   let n = y_end - y_start + 1
   let cells' = flatten cells
   let indexes = map (\t -> flatten_coordinate gw (y_start + t) x) (0..<n)
   let values = map (\i -> cells'[i] with underlying.direction.y = flow) indexes
   in unflatten gh gw (scatter cells' indexes values)
 
-let add_line_horizontal [gh] [gw] (y: i64) (x_start: i64) (x_end: i64) (flow: flow) (cells: *[gh][gw]cell):
-                        *[gh][gw]cell =
+let add_line_horizontal 'aux [gh] [gw] (y: i64) (x_start: i64) (x_end: i64) (flow: flow) (cells: *[gh][gw](cell aux)):
+                        *[gh][gw](cell aux) =
   let n = x_end - x_start + 1
   let cells' = flatten cells
   let indexes = map (\t -> flatten_coordinate gw y (x_start + t)) (0..<n)
   let values = map (\i -> cells'[i] with underlying.direction.x = flow) indexes
   in unflatten gh gw (scatter cells' indexes values)
 
-let add_cell [gh] [gw] (y: i64) (x: i64) (color: argb.colour) (direction: direction flow) (cells: *[gh][gw]cell): *[gh][gw]cell =
+let add_cell 'aux [gh] [gw] (y: i64) (x: i64) (color: argb.colour) (direction: direction flow) (cells: *[gh][gw](cell aux)): *[gh][gw](cell aux) =
   let cell = cells[y, x] with color = color
                          with direction = direction
   in cells with [y, x] = copy cell
@@ -125,9 +127,9 @@ let reduce1 't (f: t -> t -> t) (ts: []t) : with_neutral t =
 --
 -- FIXME: Consider if we maybe want to store the resulting mask in a sparse way
 -- instead.  Mostly relevant if we want to save space.
-let find_cycles [gh] [gw] (cells: [gh][gw]cell): [][gh][gw](direction flow) =
+let find_cycles 'aux [gh] [gw] (cells: [gh][gw](cell aux)): [][gh][gw](direction flow) =
   let in_bounds = in_bounds gh gw
-  let is_corner (cell: cell): bool =
+  let is_corner (cell: cell aux): bool =
     cell.underlying.direction.y != 0 && cell.underlying.direction.x != 0
   let corners = filter (\(y, x) -> is_corner cells[y, x]) (flatten (tabulate_2d gh gw (\y x -> (y, x))))
   let empties () = replicate gh (replicate gw (empty_direction 0))
@@ -194,14 +196,15 @@ let find_cycles [gh] [gw] (cells: [gh][gw]cell): [][gh][gw](direction flow) =
   let grids = nub_2d grids
   in grids
 
-let step [n_cycle_checks] (gh: i64) (gw: i64)
+let step 'aux [n_cycle_checks] (gh: i64) (gw: i64)
                           (cycle_checks: [n_cycle_checks][gh][gw](direction flow))
-                          (cells: *[gh][gw]cell)
-                          (choose_direction: i64 -> i64 -> cell -> (rng, direction flow)):
-                          (*[gh][gw]cell, []cell_leak) =
+                          (cells: *[gh][gw](cell aux))
+                          (choose_direction: i64 -> i64 -> cell aux -> (rng, direction flow))
+                          (aux_dummy_element: aux):
+                          (*[gh][gw](cell aux), [](cell_leak aux)) =
   let in_bounds = in_bounds gh gw
-  let update_can_be_moved_to_from (cells: *[gh][gw]cell): *[gh][gw]cell =
-    let update_can_be_moved_to_from_cell (y: i64) (x: i64): cell =
+  let update_can_be_moved_to_from (cells: *[gh][gw](cell aux)): *[gh][gw](cell aux) =
+    let update_can_be_moved_to_from_cell (y: i64) (x: i64): cell aux =
       let cell = cells[y, x]
       in if cell.can_be_moved_to_from.calculated
          then cell
@@ -267,12 +270,12 @@ let step [n_cycle_checks] (gh: i64) (gw: i64)
     map (\cycle_check_grid ->
            let cells_flat = flatten_to n_cells cells
            let checks_flat = flatten_to n_cells cycle_check_grid
-           in if all (\(cell: cell, check: direction flow) ->
+           in if all (\(cell: cell aux, check: direction flow) ->
                         (check.y == 0 && check.x == 0) || (!cell.can_be_moved_to_from.calculated &&
                                                            cell.direction == check))
                      (zip cells_flat checks_flat)
               then let cells_flat =
-                     map3 (\(cell: cell) (check: direction flow) ((y, x): (i64, i64)) ->
+                     map3 (\(cell: cell aux) (check: direction flow) ((y, x): (i64, i64)) ->
                              if check.y != 0 || check.x != 0
                              then let u_dir = cell.underlying.direction
                                   let cell = cell with can_be_moved_to_from.calculated = true
@@ -286,8 +289,8 @@ let step [n_cycle_checks] (gh: i64) (gw: i64)
                           cells_flat checks_flat (flatten_to n_cells (tabulate_2d gh gw (\y x -> (y, x))))
                    in unflatten gh gw cells_flat
               else cells) cycle_checks
-  let merge_checked (grid1: [gh][gw]cell) (grid2: [gh][gw]cell): [gh][gw]cell =
-    let merge_cell (cell1: cell) (cell2: cell): cell =
+  let merge_checked (grid1: [gh][gw](cell aux)) (grid2: [gh][gw](cell aux)): [gh][gw](cell aux) =
+    let merge_cell (cell1: cell aux) (cell2: cell aux): cell aux =
       if cell1.can_be_moved_to_from.calculated
       then cell1
       else cell2
@@ -296,7 +299,7 @@ let step [n_cycle_checks] (gh: i64) (gw: i64)
               case #val cells -> cells
               case #neutral -> cells
 
-  let move_cell (y: i64) (x: i64): (cell, option cell_leak) =
+  let move_cell (y: i64) (x: i64): (cell aux, option (cell_leak aux)) =
     let cell = cells[y, x]
     let (y_next, x_next) = (y + i64.i8 cell.direction.y, x + i64.i8 cell.direction.x)
     let cell' =
@@ -331,8 +334,9 @@ let step [n_cycle_checks] (gh: i64) (gw: i64)
                      then (cell.underlying.rng, {y=0, x=cell.underlying.direction.x})
                      else (cell.underlying.rng, cell_prev.direction)
                    in cell with color = cell_prev.color
-                            with direction = direction
-                            with underlying.rng = rng
+                           with aux = cell_prev.aux
+                           with direction = direction
+                           with underlying.rng = rng
               else cell
       else if in_bounds y_next x_next
       then let cell_next = cells[y_next, x_next]
@@ -354,25 +358,26 @@ let step [n_cycle_checks] (gh: i64) (gw: i64)
 
   -- Actually move the movable cells.
   let (cells, cell_leaks) = unzip (flatten (tabulate_2d gh gw move_cell))
-  let cell_leaks = all_somes cell_leaks cell_leak_dummy_element
+  let cell_leaks = all_somes cell_leaks (cell_leak_dummy_element aux_dummy_element)
 
   let cells = unflatten gh gw cells
 
   -- Reset can_be_moved_to_from fields.
-  let cells = map (map (\(cell: cell) -> cell with can_be_moved_to_from.calculated = false
-                                              with can_be_moved_to_from.direction.x = false
-                                              with can_be_moved_to_from.direction.y = false)) cells
+  let cells = map (map (\(cell: cell aux) ->
+                          cell with can_be_moved_to_from.calculated = false
+                               with can_be_moved_to_from.direction.x = false
+                               with can_be_moved_to_from.direction.y = false)) cells
   in (cells, cell_leaks)
 
 -- Useful for testing unrelated parts of the algorithm.
-let choose_direction_random (_y: i64) (_x: i64) (cell: cell): (rng, direction flow) =
+let choose_direction_random 'aux (_y: i64) (_x: i64) (cell: cell aux): (rng, direction flow) =
   let (rng, choice) = dist_i8.rand (0, 1) cell.underlying.rng
   in (rng, if choice == 0
            then {y=cell.underlying.direction.y, x=0}
            else {y=0, x=cell.underlying.direction.x})
 
-let render (h: i64) (w: i64) (gh: i64) (gw: i64) (scale: i64) (grid: [gh][gw]cell): [h][w]argb.colour =
-  let render_cell (cell: cell): (argb.colour, bool, i8, i8) =
+let render 'aux (h: i64) (w: i64) (gh: i64) (gw: i64) (scale: i64) (grid: [gh][gw](cell aux)): [h][w]argb.colour =
+  let render_cell (cell: cell aux): (argb.colour, bool, i8, i8) =
     let (color, occupied) =
       if is_occupied cell
       then (cell.color, true)
@@ -424,7 +429,7 @@ let render (h: i64) (w: i64) (gh: i64) (gw: i64) (scale: i64) (grid: [gh][gw]cel
 module type scenario = {
   val name: () -> string []
 
-  val init [gh] [gw]: *[gh][gw]cell -> *[gh][gw]cell
+  val init [gh] [gw]: *[gh][gw](cell ()) -> *[gh][gw](cell ())
 
-  val step [gh] [gw]: *[gh][gw]cell -> i64 -> rng -> (rng, bool, *[gh][gw]cell)
+  val step [gh] [gw]: *[gh][gw](cell ()) -> i64 -> rng -> (rng, bool, *[gh][gw](cell ()))
 }

@@ -1,6 +1,8 @@
 import "../lib/github.com/diku-dk/lys/lys"
 import "../flowamok"
 
+type cell = cell ()
+
 module type scenario_helper_exposed = {
   val name: i64 -> string []
 
@@ -38,7 +40,7 @@ module type scenario_helper_helper = {
 module mk_scenario_helper_exposed (scenario_helper_helper: scenario_helper_helper): scenario_helper_exposed = {
   let dummy_rng () = rnge.rng_from_seed [0]
 
-  let dummy_grid gh gw = replicate gh (replicate gw (create_cell (dummy_rng ())))
+  let dummy_grid gh gw = replicate gh (replicate gw (create_cell () (dummy_rng ())))
 
   let name (sid: i64): string [] =
     (scenario_helper_helper.scenario_helper sid (dummy_grid 1 1) (dummy_grid 1 1) 0 (dummy_rng ())).2
