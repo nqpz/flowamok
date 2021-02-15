@@ -84,18 +84,18 @@ let create_grid 'aux (gh: i64) (gw: i64) (aux: aux) (rng: rng): (rng, *[gh][gw](
 let add_line_vertical 'aux [gh] [gw] (y_start: i64) (y_end: i64) (x: i64) (flow: flow) (cells: *[gh][gw](cell aux)):
                       *[gh][gw](cell aux) =
   let n = y_end - y_start + 1
-  let cells' = flatten cells
-  let indexes = map (\t -> flatten_coordinate gw (y_start + t) x) (0..<n)
-  let values = map (\i -> cells'[i] with underlying.direction.y = flow) indexes
-  in unflatten gh gw (scatter cells' indexes values)
+  in loop cells
+     for y < n
+     do let cell' = copy (cells[y_start + y, x] with underlying.direction.y = flow)
+        in cells with [y_start + y, x] = cell'
 
 let add_line_horizontal 'aux [gh] [gw] (y: i64) (x_start: i64) (x_end: i64) (flow: flow) (cells: *[gh][gw](cell aux)):
                         *[gh][gw](cell aux) =
   let n = x_end - x_start + 1
-  let cells' = flatten cells
-  let indexes = map (\t -> flatten_coordinate gw y (x_start + t)) (0..<n)
-  let values = map (\i -> cells'[i] with underlying.direction.x = flow) indexes
-  in unflatten gh gw (scatter cells' indexes values)
+  in loop cells
+     for x < n
+     do let cell' = copy (cells[y, x_start + x] with underlying.direction.x = flow)
+        in cells with [y, x_start + x] = cell'
 
 let add_cell 'aux [gh] [gw] (y: i64) (x: i64) (color: argb.colour) (direction: direction flow) (cells: *[gh][gw](cell aux)): *[gh][gw](cell aux) =
   let cell = cells[y, x] with color = color
