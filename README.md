@@ -19,7 +19,7 @@ let step = anim.step
 ```
 
 
-![](README-img/848780030cf013f9-video.gif)
+![](README-img/afa26fca39a58d644dd27340ba1ed6ea-video.gif)
 
 
 ## Basic building
