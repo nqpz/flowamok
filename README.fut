@@ -9,8 +9,8 @@
 import "animation"
 module scenarios = import "explorer/scenarios"
 module anim = mk_anim scenarios.overlapping_tight_cycles
-let init = anim.init
-let step = anim.step
+def init = anim.init
+def step = anim.step
 
 -- > :brief :video (step, init 30i64 30i64 10i64 123i32, 400i64);
 -- format: gif

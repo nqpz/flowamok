@@ -11,13 +11,13 @@ type state [n_cycles] [gh] [gw] =
    steps: i64}
 
 module mk_anim (scenario: scenario) = {
-  let init (gh: i64) (gw: i64) (scale: i64) (seed: i32): state [] [gh] [gw] =
+  def init (gh: i64) (gw: i64) (scale: i64) (seed: i32): state [] [gh] [gw] =
     let (rng, grid) = create_grid gh gw () (rnge.rng_from_seed [seed])
     let grid = scenario.init grid
     let cycles = find_cycles grid
     in {grid, cycles, rng, scale, steps=0}
 
-  let step [gh] [gw] (s: state [] [gh] [gw]): ([][]u32, state [] [gh] [gw]) =
+  def step [gh] [gw] (s: state [] [gh] [gw]): ([][]u32, state [] [gh] [gw]) =
     let (h, w) = (gh * s.scale, gw * s.scale)
     let pixels = render h w gh gw s.scale s.grid
     let grid = copy s.grid

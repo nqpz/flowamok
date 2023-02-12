@@ -8,7 +8,7 @@ type rng = rnge.rng
 
 type option 'a = #some a | #none
 
-let all_somes 'a (xs: [](option a)) (ne: a): []a =
+def all_somes 'a (xs: [](option a)) (ne: a): []a =
   let is_some (x: option a): bool =
     match x
     case #some _ -> true
@@ -40,19 +40,19 @@ type cell 'aux =
    can_be_moved_to_from: can_be_moved_to_from,
    aux: aux}
 
-let empty_direction 'base (empty: base): direction base =
+def empty_direction 'base (empty: base): direction base =
   {y=empty, x=empty}
 
-let create_underlying (rng: rng): underlying =
+def create_underlying (rng: rng): underlying =
   {rng=rng,
    direction=empty_direction 0}
 
-let empty_can_be_moved_to_from: can_be_moved_to_from =
+def empty_can_be_moved_to_from: can_be_moved_to_from =
   {calculated=false,
    direction=empty_direction false,
    next_preference_flow_x=false}
 
-let create_cell 'aux (aux: aux) (rng: rng): cell aux =
+def create_cell 'aux (aux: aux) (rng: rng): cell aux =
   {underlying=create_underlying rng,
    direction=empty_direction 0,
    color=argb.white,
@@ -60,28 +60,28 @@ let create_cell 'aux (aux: aux) (rng: rng): cell aux =
    aux=aux}
 
 type cell_leak 'aux = (i64, i64, cell aux)
-let cell_leak_dummy_element 'aux (aux: aux): cell_leak aux =
+def cell_leak_dummy_element 'aux (aux: aux): cell_leak aux =
   (-1, -1, create_cell aux (rnge.rng_from_seed [0]))
 
-let has_underlying 'aux (cell: cell aux): bool =
+def has_underlying 'aux (cell: cell aux): bool =
   cell.underlying.direction.y != 0 || cell.underlying.direction.x != 0
 
-let is_occupied 'aux (cell: cell aux): bool =
+def is_occupied 'aux (cell: cell aux): bool =
   cell.direction.y != 0 || cell.direction.x != 0
 
-let flatten_coordinate (gw: i64) (y: i64) (x: i64): i64 =
+def flatten_coordinate (gw: i64) (y: i64) (x: i64): i64 =
   y * gw + x
 
-let in_bounds (h: i64) (w: i64) (y: i64) (x: i64): bool =
+def in_bounds (h: i64) (w: i64) (y: i64) (x: i64): bool =
   y >= 0 && y < h && x >= 0 && x < w
 
-let create_grid 'aux (gh: i64) (gw: i64) (aux: aux) (rng: rng): (rng, *[gh][gw](cell aux)) =
+def create_grid 'aux (gh: i64) (gw: i64) (aux: aux) (rng: rng): (rng, *[gh][gw](cell aux)) =
   let n = gh * gw
   let rngs = rnge.split_rng n rng
   let cells = map (create_cell aux) rngs
   in (rnge.join_rng rngs, unflatten gh gw cells)
 
-let add_line_vertical 'aux [gh] [gw] (y_start: i64) (y_end: i64) (x: i64) (flow: flow) (cells: *[gh][gw](cell aux)):
+def add_line_vertical 'aux [gh] [gw] (y_start: i64) (y_end: i64) (x: i64) (flow: flow) (cells: *[gh][gw](cell aux)):
                       *[gh][gw](cell aux) =
   let n = y_end - y_start + 1
   in loop cells
@@ -89,7 +89,7 @@ let add_line_vertical 'aux [gh] [gw] (y_start: i64) (y_end: i64) (x: i64) (flow:
      do let cell' = copy (cells[y_start + y, x] with underlying.direction.y = flow)
         in cells with [y_start + y, x] = cell'
 
-let add_line_horizontal 'aux [gh] [gw] (y: i64) (x_start: i64) (x_end: i64) (flow: flow) (cells: *[gh][gw](cell aux)):
+def add_line_horizontal 'aux [gh] [gw] (y: i64) (x_start: i64) (x_end: i64) (flow: flow) (cells: *[gh][gw](cell aux)):
                         *[gh][gw](cell aux) =
   let n = x_end - x_start + 1
   in loop cells
@@ -97,12 +97,12 @@ let add_line_horizontal 'aux [gh] [gw] (y: i64) (x_start: i64) (x_end: i64) (flo
      do let cell' = copy (cells[y, x_start + x] with underlying.direction.x = flow)
         in cells with [y, x_start + x] = cell'
 
-let add_cell 'aux [gh] [gw] (y: i64) (x: i64) (color: argb.colour) (direction: direction flow) (cells: *[gh][gw](cell aux)): *[gh][gw](cell aux) =
+def add_cell 'aux [gh] [gw] (y: i64) (x: i64) (color: argb.colour) (direction: direction flow) (cells: *[gh][gw](cell aux)): *[gh][gw](cell aux) =
   let cell = cells[y, x] with color = color
                          with direction = direction
   in cells with [y, x] = copy cell
 
-let nub_2d [l] [m] [n] (srcs: [l][m][n](direction flow)): [][m][n](direction flow) =
+def nub_2d [l] [m] [n] (srcs: [l][m][n](direction flow)): [][m][n](direction flow) =
   let srcs' = zip srcs (0..<l)
   let (srcs'', _) = unzip (filter (\(src0, i0) -> all (\(src, i) -> i >= i0 || src0 != src) srcs') srcs')
   in srcs''
@@ -110,7 +110,7 @@ let nub_2d [l] [m] [n] (srcs: [l][m][n](direction flow)): [][m][n](direction flo
 -- Taken from https://futhark-lang.org/examples/no-neutral-element.html
 type with_neutral 't = #neutral | #val t
 
-let f_with_neutral 't (f: t -> t -> t)
+def f_with_neutral 't (f: t -> t -> t)
                       (x: with_neutral t)
                       (y: with_neutral t)
                       : with_neutral t =
@@ -119,7 +119,7 @@ let f_with_neutral 't (f: t -> t -> t)
   case (#neutral, _) -> y
   case (_, #neutral) -> x
 
-let reduce1 't (f: t -> t -> t) (ts: []t) : with_neutral t =
+def reduce1 't (f: t -> t -> t) (ts: []t) : with_neutral t =
   reduce (f_with_neutral f) #neutral (map (\t -> #val t) ts)
 
 -- FIXME: It would be nice with an incremental version of this and not have to
@@ -129,7 +129,7 @@ let reduce1 't (f: t -> t -> t) (ts: []t) : with_neutral t =
 -- instead.  Mostly relevant if we want to save space.
 --
 -- FIXME: This is really slow.
-let find_cycles 'aux [gh] [gw] (cells: [gh][gw](cell aux)): [][gh][gw](direction flow) =
+def find_cycles 'aux [gh] [gw] (cells: [gh][gw](cell aux)): [][gh][gw](direction flow) =
   let in_bounds = in_bounds gh gw
   let is_corner (cell: cell aux): bool =
     cell.underlying.direction.y != 0 && cell.underlying.direction.x != 0
@@ -198,7 +198,7 @@ let find_cycles 'aux [gh] [gw] (cells: [gh][gw](cell aux)): [][gh][gw](direction
   let grids = nub_2d grids
   in grids
 
-let step 'aux [n_cycle_checks] (gh: i64) (gw: i64)
+def step 'aux [n_cycle_checks] (gh: i64) (gw: i64)
                           (cycle_checks: [n_cycle_checks][gh][gw](direction flow))
                           (cells: *[gh][gw](cell aux))
                           (choose_direction: i64 -> i64 -> cell aux -> (rng, direction flow))
@@ -372,13 +372,13 @@ let step 'aux [n_cycle_checks] (gh: i64) (gw: i64)
   in (cells, cell_leaks)
 
 -- Useful for testing unrelated parts of the algorithm.
-let choose_direction_random 'aux (_y: i64) (_x: i64) (cell: cell aux): (rng, direction flow) =
+def choose_direction_random 'aux (_y: i64) (_x: i64) (cell: cell aux): (rng, direction flow) =
   let (rng, choice) = dist_i8.rand (0, 1) cell.underlying.rng
   in (rng, if choice == 0
            then {y=cell.underlying.direction.y, x=0}
            else {y=0, x=cell.underlying.direction.x})
 
-let render 'aux (h: i64) (w: i64) (gh: i64) (gw: i64) (scale: i64) (grid: [gh][gw](cell aux)): [h][w]argb.colour =
+def render 'aux (h: i64) (w: i64) (gh: i64) (gw: i64) (scale: i64) (grid: [gh][gw](cell aux)): [h][w]argb.colour =
   let render_cell (cell: cell aux): (argb.colour, bool, i8, i8) =
     let (color, occupied) =
       if is_occupied cell

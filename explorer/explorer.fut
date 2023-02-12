@@ -18,9 +18,9 @@ module scenario = explorer_scenario_helper.mk_scenario_helper_exposed {
   module S09 = mk_scenario_helper hits_an_edge
   module S10 = mk_scenario_helper adding_lines
   module S11 = mk_scenario_helper multi_spill
-  module S12 = mk_scenario_helper (mk_many_cycles { let n = 2i64 })
+  module S12 = mk_scenario_helper (mk_many_cycles { def n = 2i64 })
 
-  let scenario_helper [gh] [gw] (sid: i64)
+  def scenario_helper [gh] [gw] (sid: i64)
                       (a: *[gh][gw]cell) (b: *[gh][gw]cell) (c: i64) (d: rng):
                       helper_out [gh] [gw] [] =
     match sid
@@ -43,8 +43,8 @@ module scenario = explorer_scenario_helper.mk_scenario_helper_exposed {
 type cell = cell ()
 
 -- FIXME: Maybe this should be adjustable in some fashion.
-let gh = 108i64
-let gw = 192i64
+def gh = 108i64
+def gw = 192i64
 
 type text_content = (i32, i32, i32, i32, i64, i64, i64)
 module lys: lys with text_content = text_content = {
@@ -63,26 +63,26 @@ module lys: lys with text_content = text_content = {
 
   type text_content = text_content
 
-  let text_format () =
+  def text_format () =
     let scenario_names =
       loop s = scenario.name 0
       for i < scenario.n_scenarios - 1
       do s ++ "|" ++ scenario.name (i + 1)
     in "FPS: %d\nScenario: %[" ++ scenario_names ++ "]\nAuto: %[no|yes]\nSteps per second: %d\nSteps: %ld\nCycles detected: %ld\nCell leaks this step: %ld"
 
-  let text_content (fps: f32) (s: state): text_content =
+  def text_content (fps: f32) (s: state): text_content =
     (t32 fps, i32.i64 s.scenario_id, i32.bool s.auto,
      s.steps_auto_per_second, s.steps[s.scenario_id], length s.cycle_checks,
      s.n_cell_leaks)
 
-  let text_colour = const argb.white
+  def text_colour = const argb.white
 
-  let init_grid (gh: i64) (gw: i64) (rng: rng) (scenario_id: i64): (rng, [gh][gw]cell) =
+  def init_grid (gh: i64) (gw: i64) (rng: rng) (scenario_id: i64): (rng, [gh][gw]cell) =
     let (rng, grid) = create_grid gh gw () rng
     let grid = scenario.init scenario_id grid
     in (rng, grid)
 
-  let init (seed: u32) (h: i64) (w: i64): state =
+  def init (seed: u32) (h: i64) (w: i64): state =
     let rng = rnge.rng_from_seed [i32.u32 seed]
     let rngs = rnge.split_rng scenario.n_scenarios rng
     let (rngs, grids) = unzip (map2 (init_grid gh gw) rngs (0..<scenario.n_scenarios))
@@ -93,13 +93,13 @@ module lys: lys with text_content = text_content = {
         steps_auto_per_second=30, steps=replicate scenario.n_scenarios 0,
         grids, cycle_checks, n_cell_leaks=0, scenario_id}
 
-  let grab_mouse = false
+  def grab_mouse = false
 
-  let resize (h: i64) (w: i64) (s: state): state =
+  def resize (h: i64) (w: i64) (s: state): state =
     s with h = h
       with w = w
 
-  let step (s: state) (n_steps: i64): state =
+  def step (s: state) (n_steps: i64): state =
     let grids = copy s.grids :> *[scenario.n_scenarios][gh][gw]cell
     let cycle_checks = s.cycle_checks :> [][gh][gw](direction flow)
     let steps = copy s.steps
@@ -119,7 +119,7 @@ module lys: lys with text_content = text_content = {
          with cycle_checks = cycle_checks
          with n_cell_leaks = n_cell_leaks
 
-let event (e: event) (s: state): state =
+def event (e: event) (s: state): state =
     match e
     case #step td ->
       if s.auto
@@ -175,6 +175,6 @@ let event (e: event) (s: state): state =
     case _ ->
       s
 
-  let render (s: state): [][]argb.colour =
+  def render (s: state): [][]argb.colour =
     render s.h s.w gh gw s.scale (s.grids[s.scenario_id] :> [gh][gw]cell)
 }
