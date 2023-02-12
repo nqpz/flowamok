@@ -10,8 +10,8 @@ It's a stencil and then some.  Work in progress!
 import "animation"
 module scenarios = import "explorer/scenarios"
 module anim = mk_anim scenarios.overlapping_tight_cycles
-let init = anim.init
-let step = anim.step
+def init = anim.init
+def step = anim.step
 ```
 
 ```
@@ -19,7 +19,7 @@ let step = anim.step
 ```
 
 
-![](README-img/afa26fca39a58d644dd27340ba1ed6ea-video.gif)
+![](README-img/a1470c1d315a591337f06bec2f39e0e4-video.gif)
 
 
 ## Basic building
