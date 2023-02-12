@@ -2,6 +2,7 @@
 *.c
 *.o
 *.h
+*.json
 /explorer/explorer_wrapper.fut
 /explorer/explorer
 README
