@@ -19,7 +19,7 @@ def step = anim.step
 ```
 
 
-![](README-img/a1470c1d315a591337f06bec2f39e0e4-video.gif)
+![](README-img/fbee7fcaa9a95d80b0ad37182ce44a4b-video.gif)
 
 
 ## Basic building
@@ -29,6 +29,11 @@ libraries with associated header files.
 
 First run `futhark pkg sync` once.  Then choose which interface you want to
 build (currently only one).
+
+You can configure backends and frontends as described in
+<https://github.com/diku-dk/lys#configuring-the-backend>.  You can also
+put these custom `LYS_*` variables in a file `custom.mk`, which will
+then be read by the Makefile.
 
 ## Scenario explorer
 

@@ -23,6 +23,11 @@ def step = anim.step
 -- First run `futhark pkg sync` once.  Then choose which interface you want to
 -- build (currently only one).
 --
+-- You can configure backends and frontends as described in
+-- <https://github.com/diku-dk/lys#configuring-the-backend>.  You can also
+-- put these custom `LYS_*` variables in a file `custom.mk`, which will
+-- then be read by the Makefile.
+--
 -- ## Scenario explorer
 --
 -- Explore different hand-crafted scenarios.
