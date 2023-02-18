@@ -81,7 +81,7 @@ def create_grid 'aux (gh: i64) (gw: i64) (aux: aux) (rng: rng): (rng, *[gh][gw](
   let cells = map (create_cell aux) rngs
   in (rnge.join_rng rngs, unflatten gh gw cells)
 
-def add_line_vertical 'aux [gh] [gw] (y_start: i64) (y_end: i64) (x: i64) (flow: flow) (cells: *[gh][gw](cell aux)):
+def add_line_vertical 'aux [gh][gw] (y_start: i64) (y_end: i64) (x: i64) (flow: flow) (cells: *[gh][gw](cell aux)):
                       *[gh][gw](cell aux) =
   let n = y_end - y_start + 1
   in loop cells
@@ -89,7 +89,7 @@ def add_line_vertical 'aux [gh] [gw] (y_start: i64) (y_end: i64) (x: i64) (flow:
      do let cell' = copy (cells[y_start + y, x] with underlying.direction.y = flow)
         in cells with [y_start + y, x] = cell'
 
-def add_line_horizontal 'aux [gh] [gw] (y: i64) (x_start: i64) (x_end: i64) (flow: flow) (cells: *[gh][gw](cell aux)):
+def add_line_horizontal 'aux [gh][gw] (y: i64) (x_start: i64) (x_end: i64) (flow: flow) (cells: *[gh][gw](cell aux)):
                         *[gh][gw](cell aux) =
   let n = x_end - x_start + 1
   in loop cells
@@ -97,7 +97,7 @@ def add_line_horizontal 'aux [gh] [gw] (y: i64) (x_start: i64) (x_end: i64) (flo
      do let cell' = copy (cells[y, x_start + x] with underlying.direction.x = flow)
         in cells with [y, x_start + x] = cell'
 
-def add_cell 'aux [gh] [gw] (y: i64) (x: i64) (color: argb.colour) (direction: direction flow) (cells: *[gh][gw](cell aux)): *[gh][gw](cell aux) =
+def add_cell 'aux [gh][gw] (y: i64) (x: i64) (color: argb.colour) (direction: direction flow) (cells: *[gh][gw](cell aux)): *[gh][gw](cell aux) =
   let cell = cells[y, x] with color = color
                          with direction = direction
   in cells with [y, x] = copy cell
@@ -129,7 +129,7 @@ def reduce1 't (f: t -> t -> t) (ts: []t) : with_neutral t =
 -- instead.  Mostly relevant if we want to save space.
 --
 -- FIXME: This is really slow.
-def find_cycles 'aux [gh] [gw] (cells: [gh][gw](cell aux)): [][gh][gw](direction flow) =
+def find_cycles 'aux [gh][gw] (cells: [gh][gw](cell aux)): [][gh][gw](direction flow) =
   let in_bounds = in_bounds gh gw
   let is_corner (cell: cell aux): bool =
     cell.underlying.direction.y != 0 && cell.underlying.direction.x != 0
@@ -431,7 +431,7 @@ def render 'aux (h: i64) (w: i64) (gh: i64) (gw: i64) (scale: i64) (grid: [gh][g
 module type scenario = {
   val name: () -> string []
 
-  val init [gh] [gw]: *[gh][gw](cell ()) -> *[gh][gw](cell ())
+  val init [gh][gw]: *[gh][gw](cell ()) -> *[gh][gw](cell ())
 
-  val step [gh] [gw]: *[gh][gw](cell ()) -> i64 -> rng -> (rng, bool, *[gh][gw](cell ()))
+  val step [gh][gw]: *[gh][gw](cell ()) -> i64 -> rng -> (rng, bool, *[gh][gw](cell ()))
 }

@@ -20,7 +20,7 @@ module scenario = explorer_scenario_helper.mk_scenario_helper_exposed {
   module S11 = mk_scenario_helper multi_spill
   module S12 = mk_scenario_helper (mk_many_cycles { def n = 2i64 })
 
-  def scenario_helper [gh] [gw] (sid: i64)
+  def scenario_helper [gh][gw] (sid: i64)
                       (a: *[gh][gw]cell) (b: *[gh][gw]cell) (c: i64) (d: rng):
                       helper_out [gh] [gw] [] =
     match sid

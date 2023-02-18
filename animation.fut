@@ -17,7 +17,7 @@ module mk_anim (scenario: scenario) = {
     let cycles = find_cycles grid
     in {grid, cycles, rng, scale, steps=0}
 
-  def step [gh] [gw] (s: state [] [gh] [gw]): ([][]u32, state [] [gh] [gw]) =
+  def step [gh][gw] (s: state [] [gh] [gw]): ([][]u32, state [] [gh] [gw]) =
     let (h, w) = (gh * s.scale, gw * s.scale)
     let pixels = render h w gh gw s.scale s.grid
     let grid = copy s.grid

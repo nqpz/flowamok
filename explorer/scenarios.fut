@@ -12,13 +12,13 @@ def random_color (rng: rng): (rng, argb.colour) =
 module single_fork: scenario = {
   def name () = "single fork"
 
-  def init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
+  def init [h][w] (grid: *[h][w]cell): *[h][w]cell =
     let grid = add_line_horizontal 10 10 20 1 grid
     let grid = add_line_vertical 10 40 20 1 grid
     let grid = add_line_horizontal 30 5 25 (-1) grid
     in grid
 
-  def step [h] [w] (grid: *[h][w]cell) (steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
+  def step [h][w] (grid: *[h][w]cell) (steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
     if steps % 5 == 0
     then let (rng, color) = random_color rng
          in (rng, false, add_cell 10 10 color {y=0, x=1} grid)
@@ -28,12 +28,12 @@ module single_fork: scenario = {
 module tight_queues: scenario = {
   def name () = "tight queues"
 
-  def init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
+  def init [h][w] (grid: *[h][w]cell): *[h][w]cell =
     let grid = add_line_horizontal 40 10 20 1 grid
     let grid = add_line_vertical 10 40 20 (-1) grid
     in grid
 
-  def step [h] [w] (grid: *[h][w]cell) (_steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
+  def step [h][w] (grid: *[h][w]cell) (_steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
     let (rng, color) = random_color rng
     in (rng, false, add_cell 40 10 color {y=0, x=1} grid)
 }
@@ -41,7 +41,7 @@ module tight_queues: scenario = {
 module basic_cycle: scenario = {
   def name () = "basic cycle"
 
-  def init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
+  def init [h][w] (grid: *[h][w]cell): *[h][w]cell =
     let grid = add_line_horizontal 10 10 30 1 grid
     let grid = add_line_vertical 10 30 30 1 grid
     let grid = add_line_horizontal 30 10 30 (-1) grid
@@ -52,19 +52,19 @@ module basic_cycle: scenario = {
     let grid = add_cell 20 10 argb.magenta {y= -1, x=0} grid
     in grid
 
-  def step [h] [w] (grid: *[h][w]cell) (_steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
+  def step [h][w] (grid: *[h][w]cell) (_steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
     (rng, false, grid)
 }
 
 module crossing: scenario = {
   def name () = "crossing"
 
-  def init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
+  def init [h][w] (grid: *[h][w]cell): *[h][w]cell =
     let grid = add_line_horizontal 20 10 30 1 grid
     let grid = add_line_vertical 10 30 20 1 grid
     in grid
 
-  def step [h] [w] (grid: *[h][w]cell) (steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
+  def step [h][w] (grid: *[h][w]cell) (steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
     if steps % 5 == 0
     then let grid = add_cell 20 10 argb.red {y=0, x=1} grid
          let grid = add_cell 10 20 argb.blue {y=1, x=0} grid
@@ -75,12 +75,12 @@ module crossing: scenario = {
 module close_crossing: scenario = {
   def name () = "close crossing"
 
-  def init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
+  def init [h][w] (grid: *[h][w]cell): *[h][w]cell =
     let grid = add_line_horizontal 20 10 30 1 grid
     let grid = add_line_vertical 10 30 20 1 grid
     in grid
 
-  def step [h] [w] (grid: *[h][w]cell) (_steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
+  def step [h][w] (grid: *[h][w]cell) (_steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
     let (rng, color) = random_color rng
     let grid = add_cell 20 10 color {y=0, x=1} grid
     let (rng, color) = random_color rng
@@ -91,14 +91,14 @@ module close_crossing: scenario = {
 module crossroads: scenario = {
   def name () = "crossroads"
 
-  def init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
+  def init [h][w] (grid: *[h][w]cell): *[h][w]cell =
     let grid = add_line_horizontal 29 1 58 (-1) grid
     let grid = add_line_horizontal 30 1 58 1 grid
     let grid = add_line_vertical 1 58 29 1 grid
     let grid = add_line_vertical 1 58 30 (-1) grid
     in grid
 
-  def step [h] [w] (grid: *[h][w]cell) (_steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
+  def step [h][w] (grid: *[h][w]cell) (_steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
     let (rng, choice_east) = dist_i8.rand (0, 1) rng -- most busy
     let (rng, choice_south) = dist_i8.rand (0, 4) rng
     let (rng, choice_north) = dist_i8.rand (0, 9) rng
@@ -121,7 +121,7 @@ module crossroads: scenario = {
 module small_tight_cycle: scenario = {
   def name () = "small tight cycle"
 
-  def init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
+  def init [h][w] (grid: *[h][w]cell): *[h][w]cell =
     let grid = add_line_horizontal 11 11 13 1 grid
     let grid = add_line_vertical 11 13 13 1 grid
     let grid = add_line_horizontal 13 11 13 (-1) grid
@@ -132,14 +132,14 @@ module small_tight_cycle: scenario = {
     let grid = loop grid for i < 2 do add_cell (12 + i) 11 argb.magenta {y= -1, x=0} grid
     in grid
 
-  def step [h] [w] (grid: *[h][w]cell) (_steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
+  def step [h][w] (grid: *[h][w]cell) (_steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
     (rng, false, grid)
 }
 
 module independent_tight_cycles: scenario = {
   def name () = "independent tight cycles"
 
-  def init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
+  def init [h][w] (grid: *[h][w]cell): *[h][w]cell =
     let grid = small_tight_cycle.init grid
     let grid = add_line_horizontal 10 10 14 (-1) grid
     let grid = add_line_vertical 10 14 14 (-1) grid
@@ -151,14 +151,14 @@ module independent_tight_cycles: scenario = {
     let grid = loop grid for i < 4 do add_cell (10 + i) 10 argb.magenta {y=1, x=0} grid
     in grid
 
-  def step [h] [w] (grid: *[h][w]cell) (_steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
+  def step [h][w] (grid: *[h][w]cell) (_steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
     (rng, false, grid)
 }
 
 module overlapping_tight_cycles: scenario = {
   def name () = "overlapping tight cycles"
 
-  def init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
+  def init [h][w] (grid: *[h][w]cell): *[h][w]cell =
     let grid = add_line_horizontal 10 10 14 (-1) grid
     let grid = add_line_vertical 10 24 14 (-1) grid
     let grid = add_line_horizontal 24 10 14 1 grid
@@ -179,31 +179,31 @@ module overlapping_tight_cycles: scenario = {
 
     in grid
 
-  def step [h] [w] (grid: *[h][w]cell) (_steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
+  def step [h][w] (grid: *[h][w]cell) (_steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
     (rng, false, grid)
 }
 
 module hits_an_edge: scenario = {
   def name () = "hits an edge"
 
-  def init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
+  def init [h][w] (grid: *[h][w]cell): *[h][w]cell =
     let grid = add_line_horizontal 10 5 15 1 grid
     let grid = add_line_vertical 5 15 16 (-1) grid
     let grid = add_cell 10 10 argb.brown {y=0, x=1} grid
     in grid
 
-  def step [h] [w] (grid: *[h][w]cell) (_steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
+  def step [h][w] (grid: *[h][w]cell) (_steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
     (rng, false, grid)
 }
 
 module adding_lines: scenario = {
   def name () = "adding lines"
 
-  def init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
+  def init [h][w] (grid: *[h][w]cell): *[h][w]cell =
     let grid = add_line_horizontal 1 1 6 1 grid
     in grid
 
-  def step [h] [w] (grid: *[h][w]cell) (steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
+  def step [h][w] (grid: *[h][w]cell) (steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
     let steps = steps + 10 in
     let (grid, recompute_cycles) =
       if steps % 5 == 0 && steps / 5 < 20
@@ -222,14 +222,14 @@ module adding_lines: scenario = {
 module multi_spill: scenario = {
   def name () = "multi spill"
 
-  def init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
+  def init [h][w] (grid: *[h][w]cell): *[h][w]cell =
     let grid = add_line_vertical 1 9 10 1 grid
     let grid = add_line_horizontal 10 1 9 1 grid
     let grid = add_line_vertical 11 19 10 (-1) grid
     let grid = add_line_horizontal 10 11 19 (-1) grid
     in grid
 
-  def step [h] [w] (grid: *[h][w]cell) (steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
+  def step [h][w] (grid: *[h][w]cell) (steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
     if steps % 5 == 0
     then let grid = add_cell 1 10 argb.red {y=1, x=0} grid
          let grid = add_cell 10 1 argb.blue {y=0, x=1} grid
@@ -245,7 +245,7 @@ module mk_many_cycles (input: { val n: i64 }): scenario = {
 
   def name () = "many cycles (n = " ++ ['0' + u8.i64 n] ++ ")"
 
-  def init [h] [w] (grid: *[h][w]cell): *[h][w]cell =
+  def init [h][w] (grid: *[h][w]cell): *[h][w]cell =
     let (yo, xo) = (19, 10)
     let grid =
       loop grid for y < n
@@ -259,6 +259,6 @@ module mk_many_cycles (input: { val n: i64 }): scenario = {
     let grid = add_cell yo xo argb.green {y=0, x=1} grid
     in grid
 
-  def step [h] [w] (grid: *[h][w]cell) (_steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
+  def step [h][w] (grid: *[h][w]cell) (_steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
     (rng, false, grid)
 }
