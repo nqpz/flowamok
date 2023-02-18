@@ -19,7 +19,7 @@ def step = anim.step
 ```
 
 
-![](README-img/a1ec9bb0fe423668e9f06d975e2a4c69-video.gif)
+![](README-img/b388d9a2ead1110133f62393776a621a-video.gif)
 
 
 ## Basic building

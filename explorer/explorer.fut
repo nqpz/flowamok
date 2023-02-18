@@ -92,7 +92,7 @@ module lys: lys with text_content = text_content = {
     let rng = rnge.join_rng rngs
     let scenario_id = 0
     let cycle_checks = if perfect_simulation
-                       then find_cycles grids[scenario_id]
+                       then stepper_perfect.find_cycles grids[scenario_id]
                        else []
     in {h, w, scale=10, auto=false, rng, time_unused=0,
         steps_auto_per_second=30, steps=replicate scenario.n_scenarios 0,
@@ -114,11 +114,11 @@ module lys: lys with text_content = text_content = {
       for _i < n_steps
       do let (grid, cell_leaks) =
            if s.perfect_simulation
-           then step_perfect gh gw grid choose_direction_random cycle_checks ()
-           else step_quick gh gw grid choose_direction_random ()
+           then stepper_perfect.step gh gw choose_direction_random cycle_checks () grid
+           else stepper_quick.step gh gw choose_direction_random () grid
          let (rng, recompute_cycles, grid) = scenario.step s.scenario_id grid step_cur rng
          let cycle_checks = if recompute_cycles && s.perfect_simulation
-                            then copy (find_cycles grid)
+                            then copy (stepper_perfect.find_cycles grid)
                             else cycle_checks
          in (rng, grid, cycle_checks, step_cur + 1, n_cell_leaks + length cell_leaks)
     in s with rng = rng
@@ -151,7 +151,7 @@ def event (e: event) (s: state): state =
            -- of cycles, and since we may need to redo cycle detection after
            -- stepping, which could also change the number of cycles.
            let cycle_checks = if s.perfect_simulation
-                              then find_cycles s.grids[scenario_id]
+                              then stepper_perfect.find_cycles s.grids[scenario_id]
                               else s.cycle_checks
            in s with scenario_id = scenario_id
                 with cycle_checks = cycle_checks
@@ -159,7 +159,7 @@ def event (e: event) (s: state): state =
       else if key == SDLK_RIGHT
       then let scenario_id = (s.scenario_id + 1) % scenario.n_scenarios
            let cycle_checks = if s.perfect_simulation
-                              then find_cycles s.grids[scenario_id]
+                              then stepper_perfect.find_cycles s.grids[scenario_id]
                               else s.cycle_checks
            in s with scenario_id = scenario_id
                 with cycle_checks = cycle_checks
@@ -168,7 +168,7 @@ def event (e: event) (s: state): state =
       else if key == SDLK_p
       then let s = s with perfect_simulation = !s.perfect_simulation
            in if s.perfect_simulation
-              then s with cycle_checks = find_cycles s.grids[s.scenario_id]
+              then s with cycle_checks = stepper_perfect.find_cycles s.grids[s.scenario_id]
               else s
       else if key == SDLK_UP
       then s with steps_auto_per_second = s.steps_auto_per_second + 1
@@ -179,7 +179,7 @@ def event (e: event) (s: state): state =
            let grids = copy s.grids :> *[scenario.n_scenarios][gh][gw]cell
            let grids[s.scenario_id] = grid
            let cycle_checks = if s.perfect_simulation
-                              then find_cycles grid
+                              then stepper_perfect.find_cycles grid
                               else s.cycle_checks
            in s with rng = rng
                 with grids = grids
