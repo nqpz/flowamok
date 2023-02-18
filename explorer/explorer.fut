@@ -46,7 +46,7 @@ type cell = cell ()
 def gh = 108i64
 def gw = 192i64
 
-type text_content = (i32, i32, i32, i32, i64, i64, i64)
+type text_content = (i32, i32, i32, i32, i64, i32, i64, i64)
 module lys: lys with text_content = text_content = {
   type~ state =
     {h: i64, w: i64,
@@ -57,6 +57,7 @@ module lys: lys with text_content = text_content = {
      steps_auto_per_second: i32,
      steps: []i64,
      grids: [][][]cell,
+     perfect_simulation: bool,
      cycle_checks: [][][](direction flow),
      n_cell_leaks: i64,
      scenario_id: i64}
@@ -68,12 +69,13 @@ module lys: lys with text_content = text_content = {
       loop s = scenario.name 0
       for i < scenario.n_scenarios - 1
       do s ++ "|" ++ scenario.name (i + 1)
-    in "FPS: %d\nScenario: %[" ++ scenario_names ++ "]\nAuto: %[no|yes]\nSteps per second: %d\nSteps: %ld\nCycles detected: %ld\nCell leaks this step: %ld"
+    in "FPS: %d\nScenario: %[" ++ scenario_names ++ "]\nAuto: %[no|yes]\nSteps per second: %d\nSteps: %ld\nPerfect: %[false|true]\nCycles detected: %ld\nCell leaks this step: %ld"
 
   def text_content (fps: f32) (s: state): text_content =
     (t32 fps, i32.i64 s.scenario_id, i32.bool s.auto,
-     s.steps_auto_per_second, s.steps[s.scenario_id], length s.cycle_checks,
-     s.n_cell_leaks)
+     s.steps_auto_per_second, s.steps[s.scenario_id],
+     i32.bool s.perfect_simulation,
+     length s.cycle_checks, s.n_cell_leaks)
 
   def text_colour = const argb.white
 
@@ -86,12 +88,15 @@ module lys: lys with text_content = text_content = {
     let rng = rnge.rng_from_seed [i32.u32 seed]
     let rngs = rnge.split_rng scenario.n_scenarios rng
     let (rngs, grids) = unzip (map2 (init_grid gh gw) rngs (0..<scenario.n_scenarios))
+    let perfect_simulation = true
     let rng = rnge.join_rng rngs
     let scenario_id = 0
-    let cycle_checks = find_cycles grids[scenario_id]
+    let cycle_checks = if perfect_simulation
+                       then find_cycles grids[scenario_id]
+                       else []
     in {h, w, scale=10, auto=false, rng, time_unused=0,
         steps_auto_per_second=30, steps=replicate scenario.n_scenarios 0,
-        grids, cycle_checks, n_cell_leaks=0, scenario_id}
+        grids, perfect_simulation, cycle_checks, n_cell_leaks=0, scenario_id}
 
   def grab_mouse = false
 
@@ -107,9 +112,12 @@ module lys: lys with text_content = text_content = {
       loop (rng, grid, cycle_checks, step_cur, n_cell_leaks) =
         (s.rng, copy grids[s.scenario_id], cycle_checks, steps[s.scenario_id], 0)
       for _i < n_steps
-      do let (grid, cell_leaks) = step gh gw cycle_checks grid choose_direction_random ()
+      do let (grid, cell_leaks) =
+           if s.perfect_simulation
+           then step_perfect gh gw grid choose_direction_random cycle_checks ()
+           else step_quick gh gw grid choose_direction_random ()
          let (rng, recompute_cycles, grid) = scenario.step s.scenario_id grid step_cur rng
-         let cycle_checks = if recompute_cycles
+         let cycle_checks = if recompute_cycles && s.perfect_simulation
                             then copy (find_cycles grid)
                             else cycle_checks
          in (rng, grid, cycle_checks, step_cur + 1, n_cell_leaks + length cell_leaks)
@@ -142,17 +150,26 @@ def event (e: event) (s: state): state =
            -- satisfying way, since different grids can have a different number
            -- of cycles, and since we may need to redo cycle detection after
            -- stepping, which could also change the number of cycles.
-           let cycle_checks = find_cycles s.grids[scenario_id]
+           let cycle_checks = if s.perfect_simulation
+                              then find_cycles s.grids[scenario_id]
+                              else s.cycle_checks
            in s with scenario_id = scenario_id
                 with cycle_checks = cycle_checks
                 with n_cell_leaks = 0
       else if key == SDLK_RIGHT
       then let scenario_id = (s.scenario_id + 1) % scenario.n_scenarios
-           let cycle_checks = find_cycles s.grids[scenario_id]
+           let cycle_checks = if s.perfect_simulation
+                              then find_cycles s.grids[scenario_id]
+                              else s.cycle_checks
            in s with scenario_id = scenario_id
                 with cycle_checks = cycle_checks
       else if key == SDLK_a
       then s with auto = !s.auto
+      else if key == SDLK_p
+      then let s = s with perfect_simulation = !s.perfect_simulation
+           in if s.perfect_simulation
+              then s with cycle_checks = find_cycles s.grids[s.scenario_id]
+              else s
       else if key == SDLK_UP
       then s with steps_auto_per_second = s.steps_auto_per_second + 1
       else if key == SDLK_DOWN
@@ -161,7 +178,9 @@ def event (e: event) (s: state): state =
       then let (rng, grid) = init_grid gh gw s.rng s.scenario_id
            let grids = copy s.grids :> *[scenario.n_scenarios][gh][gw]cell
            let grids[s.scenario_id] = grid
-           let cycle_checks = find_cycles grid
+           let cycle_checks = if s.perfect_simulation
+                              then find_cycles grid
+                              else s.cycle_checks
            in s with rng = rng
                 with grids = grids
                 with cycle_checks = cycle_checks

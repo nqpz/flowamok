@@ -198,59 +198,124 @@ def find_cycles 'aux [gh][gw] (cells: [gh][gw](cell aux)): [][gh][gw](direction 
   let grids = nub_2d grids
   in grids
 
-def step 'aux [n_cycle_checks] (gh: i64) (gw: i64)
-                          (cycle_checks: [n_cycle_checks][gh][gw](direction flow))
-                          (cells: *[gh][gw](cell aux))
-                          (choose_direction: i64 -> i64 -> cell aux -> (rng, direction flow))
-                          (aux_dummy_element: aux):
-                          (*[gh][gw](cell aux), [](cell_leak aux)) =
+def update_can_be_moved_to_from 'aux [gh][gw] (cells: *[gh][gw](cell aux)): *[gh][gw](cell aux) =
   let in_bounds = in_bounds gh gw
-  let update_can_be_moved_to_from (cells: *[gh][gw](cell aux)): *[gh][gw](cell aux) =
-    let update_can_be_moved_to_from_cell (y: i64) (x: i64): cell aux =
-      let cell = cells[y, x]
-      in if cell.can_be_moved_to_from.calculated
-         then cell
-         else let (can_be_moved_to_from_calculated, can_be_moved_to_from_base) =
-                if is_occupied cell
-                then let (y_next, x_next) = (y + i64.i8 cell.direction.y, x + i64.i8 cell.direction.x)
-                     in if in_bounds y_next x_next
-                        then let cell_next = cells[y_next, x_next]
-                             in if has_underlying cell_next
-                                then (cell_next.can_be_moved_to_from.calculated,
-                                      ((cell.direction.y != 0 && cell_next.can_be_moved_to_from.direction.y) ||
-                                       (cell.direction.x != 0 && cell_next.can_be_moved_to_from.direction.x)))
-                                else (true, true)
-                        else (true, true)
-                else (true, true)
-              in if can_be_moved_to_from_calculated
-                 then let cell = cell with can_be_moved_to_from.calculated = true
-                      in if can_be_moved_to_from_base
-                         then if has_underlying cell
-                              then let y_prev = y - i64.i8 cell.underlying.direction.y
-                                   let x_prev = x - i64.i8 cell.underlying.direction.x
-                                   let cell_prev_y_occupied = cell.underlying.direction.y != 0 &&
-                                                              in_bounds y_prev x &&
-                                                              cells[y_prev, x].direction.y != 0
-                                   let cell_prev_x_occupied = cell.underlying.direction.x != 0 &&
-                                                              in_bounds y x_prev &&
-                                                              cells[y, x_prev].direction.x != 0
-                                   let (flow_y, flow_x, next_preference_flow_x) =
-                                     match (cell_prev_y_occupied, cell_prev_x_occupied, cell.can_be_moved_to_from.next_preference_flow_x)
-                                     case (_, true, true) -> (false, true, false)
-                                     case (true, _, false) -> (true, false, true)
-                                     case (true, false, true) -> (true, false, true)
-                                     case (false, true, false) -> (false, true, false)
-                                     case (false, false, b) -> (false, false, b)
-                                   in cell with can_be_moved_to_from.direction.y = flow_y
-                                           with can_be_moved_to_from.direction.x = flow_x
-                                           with can_be_moved_to_from.next_preference_flow_x = next_preference_flow_x
-                              else -- Accept "leaks" of cells into nothingness.
-                                cell with can_be_moved_to_from.direction.y = true
-                                     with can_be_moved_to_from.direction.x = true
-                         else cell
-                 else cell
-    in tabulate_2d gh gw update_can_be_moved_to_from_cell
+  let update_can_be_moved_to_from_cell (y: i64) (x: i64): cell aux =
+    let cell = cells[y, x]
+    in if cell.can_be_moved_to_from.calculated
+       then cell
+       else let (can_be_moved_to_from_calculated, can_be_moved_to_from_base) =
+              if is_occupied cell
+              then let (y_next, x_next) = (y + i64.i8 cell.direction.y, x + i64.i8 cell.direction.x)
+                   in if in_bounds y_next x_next
+                      then let cell_next = cells[y_next, x_next]
+                           in if has_underlying cell_next
+                              then (cell_next.can_be_moved_to_from.calculated,
+                                    ((cell.direction.y != 0 && cell_next.can_be_moved_to_from.direction.y) ||
+                                     (cell.direction.x != 0 && cell_next.can_be_moved_to_from.direction.x)))
+                              else (true, true)
+                      else (true, true)
+              else (true, true)
+            in if can_be_moved_to_from_calculated
+               then let cell = cell with can_be_moved_to_from.calculated = true
+                    in if can_be_moved_to_from_base
+                       then if has_underlying cell
+                            then let y_prev = y - i64.i8 cell.underlying.direction.y
+                                 let x_prev = x - i64.i8 cell.underlying.direction.x
+                                 let cell_prev_y_occupied = cell.underlying.direction.y != 0 &&
+                                                            in_bounds y_prev x &&
+                                                            cells[y_prev, x].direction.y != 0
+                                 let cell_prev_x_occupied = cell.underlying.direction.x != 0 &&
+                                                            in_bounds y x_prev &&
+                                                            cells[y, x_prev].direction.x != 0
+                                 let (flow_y, flow_x, next_preference_flow_x) =
+                                   match (cell_prev_y_occupied, cell_prev_x_occupied, cell.can_be_moved_to_from.next_preference_flow_x)
+                                   case (_, true, true) -> (false, true, false)
+                                   case (true, _, false) -> (true, false, true)
+                                   case (true, false, true) -> (true, false, true)
+                                   case (false, true, false) -> (false, true, false)
+                                   case (false, false, b) -> (false, false, b)
+                                 in cell with can_be_moved_to_from.direction.y = flow_y
+                                         with can_be_moved_to_from.direction.x = flow_x
+                                         with can_be_moved_to_from.next_preference_flow_x = next_preference_flow_x
+                            else -- Accept "leaks" of cells into nothingness.
+                              cell with can_be_moved_to_from.direction.y = true
+                                   with can_be_moved_to_from.direction.x = true
+                       else cell
+               else cell
+  in tabulate_2d gh gw update_can_be_moved_to_from_cell
 
+def move_cell 'aux [gh][gw]
+    (cells: [gh][gw](cell aux))
+    (choose_direction: i64 -> i64 -> cell aux -> (rng, direction flow))
+    (y: i64)
+    (x: i64)
+    : (cell aux, option (cell_leak aux)) =
+  let in_bounds = in_bounds gh gw
+  let cell = cells[y, x]
+  let (y_next, x_next) = (y + i64.i8 cell.direction.y, x + i64.i8 cell.direction.x)
+  let cell' =
+    if cell.can_be_moved_to_from.direction.y || cell.can_be_moved_to_from.direction.x
+    then let (y_prev, x_prev) = if cell.can_be_moved_to_from.direction.y
+                                then (y - i64.i8 cell.underlying.direction.y, x)
+                                else (y, x - i64.i8 cell.underlying.direction.x)
+         in if in_bounds y_prev x_prev
+            then let cell_prev = cells[y_prev, x_prev]
+                 let (flow_y_ok, flow_y_ok_isolated) =
+                   if cell.underlying.direction.y != 0 &&
+                      in_bounds (y + i64.i8 cell.underlying.direction.y) x
+                   then let cell_next = cells[y + i64.i8 cell.underlying.direction.y, x]
+                        let ok_base = cell_next.underlying.direction.y == cell.underlying.direction.y
+                        in (ok_base, ok_base ||
+                                     (cell_next.underlying.direction.y == 0 && cell_next.underlying.direction.x == 0))
+                   else (false, false)
+                 let (flow_x_ok, flow_x_ok_isolated) =
+                   if cell.underlying.direction.x != 0 &&
+                      in_bounds y (x + i64.i8 cell.underlying.direction.x)
+                   then let cell_next = cells[y, x + i64.i8 cell.underlying.direction.x]
+                        let ok_base = cell_next.underlying.direction.x == cell.underlying.direction.x
+                        in (ok_base, ok_base ||
+                                     (cell_next.underlying.direction.y == 0 && cell_next.underlying.direction.x == 0))
+                   else (false, false)
+                 let (rng, direction) =
+                   if flow_y_ok && flow_x_ok
+                   then choose_direction y x cell
+                   else if !flow_x_ok && flow_y_ok_isolated
+                   then (cell.underlying.rng, {y=cell.underlying.direction.y, x=0})
+                   else if !flow_y_ok && flow_x_ok_isolated
+                   then (cell.underlying.rng, {y=0, x=cell.underlying.direction.x})
+                   else (cell.underlying.rng, cell_prev.direction)
+                 in cell with color = cell_prev.color
+                         with aux = cell_prev.aux
+                         with direction = direction
+                         with underlying.rng = rng
+            else cell
+    else if in_bounds y_next x_next
+    then let cell_next = cells[y_next, x_next]
+         in if (cell_next.can_be_moved_to_from.direction.y && cell.direction.y != 0) ||
+               (cell_next.can_be_moved_to_from.direction.x && cell.direction.x != 0)
+            then cell with direction = empty_direction 0
+            else cell
+    else cell with direction = empty_direction 0
+  let cell_leak =
+    if cell.direction != empty_direction 0 && in_bounds y_next x_next
+    then let cell_next = cells[y_next, x_next]
+         in if cell_next.underlying.direction == empty_direction 0 &&
+               ((cell_next.can_be_moved_to_from.direction.y && cell.direction.y != 0) ||
+                (cell_next.can_be_moved_to_from.direction.x && cell.direction.x != 0))
+            then #some (y_next, x_next, cell)
+            else #none
+    else #none
+  in (cell', cell_leak)
+
+def step_perfect 'aux [n_cycle_checks]
+    (gh: i64)
+    (gw: i64)
+    (cells: *[gh][gw](cell aux))
+    (choose_direction: i64 -> i64 -> cell aux -> (rng, direction flow))
+    (cycle_checks: [n_cycle_checks][gh][gw](direction flow))
+    (aux_dummy_element: aux)
+    : (*[gh][gw](cell aux), [](cell_leak aux)) =
   let (cells, _n_calculated, _) =
     -- FIXME: In the best case we only need to run a single iteration of this.
     -- In the worst case we need to run this as many times as there are cells,
@@ -301,65 +366,30 @@ def step 'aux [n_cycle_checks] (gh: i64) (gw: i64)
               case #val cells -> cells
               case #neutral -> cells
 
-  let move_cell (y: i64) (x: i64): (cell aux, option (cell_leak aux)) =
-    let cell = cells[y, x]
-    let (y_next, x_next) = (y + i64.i8 cell.direction.y, x + i64.i8 cell.direction.x)
-    let cell' =
-      if cell.can_be_moved_to_from.direction.y || cell.can_be_moved_to_from.direction.x
-      then let (y_prev, x_prev) = if cell.can_be_moved_to_from.direction.y
-                                  then (y - i64.i8 cell.underlying.direction.y, x)
-                                  else (y, x - i64.i8 cell.underlying.direction.x)
-           in if in_bounds y_prev x_prev
-              then let cell_prev = cells[y_prev, x_prev]
-                   let (flow_y_ok, flow_y_ok_isolated) =
-                     if cell.underlying.direction.y != 0 &&
-                        in_bounds (y + i64.i8 cell.underlying.direction.y) x
-                     then let cell_next = cells[y + i64.i8 cell.underlying.direction.y, x]
-                          let ok_base = cell_next.underlying.direction.y == cell.underlying.direction.y
-                          in (ok_base, ok_base ||
-                                       (cell_next.underlying.direction.y == 0 && cell_next.underlying.direction.x == 0))
-                     else (false, false)
-                   let (flow_x_ok, flow_x_ok_isolated) =
-                     if cell.underlying.direction.x != 0 &&
-                        in_bounds y (x + i64.i8 cell.underlying.direction.x)
-                     then let cell_next = cells[y, x + i64.i8 cell.underlying.direction.x]
-                          let ok_base = cell_next.underlying.direction.x == cell.underlying.direction.x
-                          in (ok_base, ok_base ||
-                                       (cell_next.underlying.direction.y == 0 && cell_next.underlying.direction.x == 0))
-                     else (false, false)
-                   let (rng, direction) =
-                     if flow_y_ok && flow_x_ok
-                     then choose_direction y x cell
-                     else if !flow_x_ok && flow_y_ok_isolated
-                     then (cell.underlying.rng, {y=cell.underlying.direction.y, x=0})
-                     else if !flow_y_ok && flow_x_ok_isolated
-                     then (cell.underlying.rng, {y=0, x=cell.underlying.direction.x})
-                     else (cell.underlying.rng, cell_prev.direction)
-                   in cell with color = cell_prev.color
-                           with aux = cell_prev.aux
-                           with direction = direction
-                           with underlying.rng = rng
-              else cell
-      else if in_bounds y_next x_next
-      then let cell_next = cells[y_next, x_next]
-           in if (cell_next.can_be_moved_to_from.direction.y && cell.direction.y != 0) ||
-                 (cell_next.can_be_moved_to_from.direction.x && cell.direction.x != 0)
-              then cell with direction = empty_direction 0
-              else cell
-      else cell with direction = empty_direction 0
-    let cell_leak =
-      if cell.direction != empty_direction 0 && in_bounds y_next x_next
-      then let cell_next = cells[y_next, x_next]
-           in if cell_next.underlying.direction == empty_direction 0 &&
-                 ((cell_next.can_be_moved_to_from.direction.y && cell.direction.y != 0) ||
-                  (cell_next.can_be_moved_to_from.direction.x && cell.direction.x != 0))
-              then #some (y_next, x_next, cell)
-              else #none
-      else #none
-    in (cell', cell_leak)
+  -- Actually move the movable cells.
+  let (cells, cell_leaks) = unzip (flatten (tabulate_2d gh gw (move_cell cells choose_direction)))
+  let cell_leaks = all_somes cell_leaks (cell_leak_dummy_element aux_dummy_element)
+
+  let cells = unflatten gh gw cells
+
+  -- Reset can_be_moved_to_from fields.
+  let cells = map (map (\(cell: cell aux) ->
+                          cell with can_be_moved_to_from.calculated = false
+                               with can_be_moved_to_from.direction.x = false
+                               with can_be_moved_to_from.direction.y = false)) cells
+  in (cells, cell_leaks)
+
+def step_quick 'aux
+    (gh: i64)
+    (gw: i64)
+    (cells: *[gh][gw](cell aux))
+    (choose_direction: i64 -> i64 -> cell aux -> (rng, direction flow))
+    (aux_dummy_element: aux):
+    (*[gh][gw](cell aux), [](cell_leak aux)) =
+  let cells = update_can_be_moved_to_from cells
 
   -- Actually move the movable cells.
-  let (cells, cell_leaks) = unzip (flatten (tabulate_2d gh gw move_cell))
+  let (cells, cell_leaks) = unzip (flatten (tabulate_2d gh gw (move_cell cells choose_direction)))
   let cell_leaks = all_somes cell_leaks (cell_leak_dummy_element aux_dummy_element)
 
   let cells = unflatten gh gw cells

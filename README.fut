@@ -41,6 +41,7 @@ def step = anim.step
 -- - Left arrow key: Move left in the list of scenarios.
 -- - Right arrow key: Move left in the list of scenarios.
 -- - `a`: Toggle auto-stepping.
+-- - `p`: Toggle whether to support cycles and similar perfect but slow simulation.
 -- - Up arrow key: Increment the steps per second in the auto-stepping mode.
 -- - Down arrow key: Decrement the steps per second in the auto-stepping mode.
 -- - `r`: Reset the current grid and stop auto-stepping.

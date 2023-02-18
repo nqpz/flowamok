@@ -19,7 +19,7 @@ def step = anim.step
 ```
 
 
-![](README-img/fbee7fcaa9a95d80b0ad37182ce44a4b-video.gif)
+![](README-img/a1ec9bb0fe423668e9f06d975e2a4c69-video.gif)
 
 
 ## Basic building
@@ -48,6 +48,7 @@ Run `make explorer/explorer && explorer/explorer` to build and run in a window.
 - Left arrow key: Move left in the list of scenarios.
 - Right arrow key: Move left in the list of scenarios.
 - `a`: Toggle auto-stepping.
+- `p`: Toggle whether to support cycles and similar perfect but slow simulation.
 - Up arrow key: Increment the steps per second in the auto-stepping mode.
 - Down arrow key: Decrement the steps per second in the auto-stepping mode.
 - `r`: Reset the current grid and stop auto-stepping.
