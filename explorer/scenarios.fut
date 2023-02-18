@@ -1,7 +1,6 @@
 import "../lib/github.com/athas/matte/colour"
 import "../flowamok"
-
-type cell = cell ()
+import "explorer_scenario_helper"
 
 def random_color (rng: rng): (rng, argb.colour) =
   let (rng, color_r) = dist_f32.rand (0.2, 0.8) rng
