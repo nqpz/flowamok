@@ -28,6 +28,21 @@ def step = anim.step
 -- put these custom `LYS_*` variables in a file `custom.mk`, which will
 -- then be read by the Makefile.
 --
+--
+-- ## Road Designer
+--
+-- Design your own road network as the simulation is running.
+--
+-- Run `make designer/designer && designer/designer` to build and run in a window.
+--
+-- ### Controls
+--
+-- - F1: Toggle text in upper-left corner.
+-- - Space: Pause/unpause the simulation.
+-- - `r`: Reset the simulation.
+-- - Left-click mouse and move cursor around to build roads.
+--
+--
 -- ## Scenario explorer
 --
 -- Explore different hand-crafted scenarios.

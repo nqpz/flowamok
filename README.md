@@ -19,7 +19,7 @@ def step = anim.step
 ```
 
 
-![](README-img/e7f36249116dface67d3b3a90761873f-video.gif)
+![](README-img/075b9d5e14670125ddc6ae0cafb92814-video.gif)
 
 
 ## Basic building
@@ -34,6 +34,21 @@ You can configure backends and frontends as described in
 <https://github.com/diku-dk/lys#configuring-the-backend>.  You can also
 put these custom `LYS_*` variables in a file `custom.mk`, which will
 then be read by the Makefile.
+
+
+## Road Designer
+
+Design your own road network as the simulation is running.
+
+Run `make designer/designer && designer/designer` to build and run in a window.
+
+### Controls
+
+- F1: Toggle text in upper-left corner.
+- Space: Pause/unpause the simulation.
+- `r`: Reset the simulation.
+- Left-click mouse and move cursor around to build roads.
+
 
 ## Scenario explorer
 
