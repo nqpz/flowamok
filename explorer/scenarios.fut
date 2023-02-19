@@ -2,12 +2,6 @@ import "../lib/github.com/athas/matte/colour"
 import "../flowamok"
 import "explorer_scenario_helper"
 
-def random_color (rng: rng): (rng, argb.colour) =
-  let (rng, color_r) = dist_f32.rand (0.2, 0.8) rng
-  let (rng, color_g) = dist_f32.rand (0.2, 0.8) rng
-  let (rng, color_b) = dist_f32.rand (0.2, 0.8) rng
-  in (rng, argb.from_rgba color_r color_g color_b 1.0)
-
 module single_fork: scenario = {
   def name () = "single fork"
 
