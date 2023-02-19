@@ -1,4 +1,5 @@
 import "../lib/github.com/diku-dk/lys/lys"
+import "../src/option"
 import "../flowamok"
 
 type cell = cell ()
@@ -15,7 +16,8 @@ module lys: lys with text_content = text_content = {
      steps_per_second: i32,
      grid: [][]cell,
      n_steps_total: i64,
-     n_leaks: i32}
+     n_leaks: i32,
+     cursor_prev: option (direction i64)}
 
   type text_content = text_content
 
@@ -39,7 +41,8 @@ module lys: lys with text_content = text_content = {
     let (rng, grid) = init_grid gh gw rng
     in {h, w, gh, gw, scale, rng, time_unused=0,
         running=true, steps_per_second=30, grid,
-        n_steps_total=0, n_leaks=0}
+        n_steps_total=0, n_leaks=0,
+        cursor_prev=#none}
 
   def grab_mouse = false
 
@@ -92,17 +95,33 @@ module lys: lys with text_content = text_content = {
               with grid = grid
     else s
 
+  local def add_lines [gh][gw]
+      (gy0: i64, gx0: i64)
+      (gy1: i64, gx1: i64)
+      (grid: *[gh][gw]cell)
+      : *[gh][gw]cell =
+    let (gy0', gy1') = if gy0 < gy1 then (gy0, gy1) else (gy1, gy0)
+    let (gx0', gx1') = if gx0 < gx1 then (gx0, gx1) else (gx1, gx0)
+    let grid = if gx0 != gx1
+               then add_line_horizontal gy0' gx0' gx1' (i8.i64 (i64.sgn (gx1 - gx0))) grid
+               else grid
+    let grid = if gy0 != gy1
+               then add_line_vertical gy0' gy1' gx1 (i8.i64 (i64.sgn (gy1 - gy0))) grid
+               else grid
+    in grid
+
   local def mouse (buttons: i32) (x: i32) (y: i32) (s: state): state =
-    let (y, x) = (i64.i32 y, i64.i32 x)
-    in if y >= 0 && y < s.h && x >= 0 && x < s.w && buttons == 0b001
-       then let (gy, gx) = (y / s.scale, x / s.scale)
-            let grid = copy s.grid
-            -- FIXME: Detect which direction the road is being constructed and
-            -- determine the underlying flow direction.
-            let cell' = copy grid[gy, gx] with underlying.direction.x = 1
-            let grid[gy, gx] = cell'
-            in s with grid = grid
-       else s
+    if buttons == 0b001
+    then let (y, x) = (i64.i32 y, i64.i32 x)
+         in if y >= 0 && y < s.h && x >= 0 && x < s.w
+            then let (gy, gx) = (y / s.scale, x / s.scale)
+                 let s = match s.cursor_prev
+                         case #some {y=gy_prev, x=gx_prev} ->
+                           s with grid = add_lines (gy_prev, gx_prev) (gy, gx) (copy s.grid)
+                         case #none -> s
+                 in s with cursor_prev = #some {y=gy, x=gx}
+            else s
+    else s with cursor_prev = #none
 
   def event (e: event) (s: state): state =
     match e
