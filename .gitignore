@@ -3,7 +3,9 @@
 *.o
 *.h
 *.json
-/explorer/explorer_wrapper.fut
-/explorer/explorer
 README
 custom.mk
+/explorer/explorer_wrapper.fut
+/explorer/explorer
+/designer/designer_wrapper.fut
+/designer/designer
