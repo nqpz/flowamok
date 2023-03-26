@@ -6,7 +6,7 @@ import "random"
 import "model"
 
 local module stepper_general = {
-  def update_can_be_moved_to_from 'aux [gh][gw]
+  local def update_can_be_moved_to_from 'aux [gh][gw]
       (cells: *[gh][gw](cell aux))
       : *[gh][gw](cell aux) =
     let in_bounds = in_bounds gh gw
@@ -138,6 +138,25 @@ local module stepper_general = {
                      with can_be_moved_to_from.direction.x = false
                      with can_be_moved_to_from.direction.y = false))
 
+  def move_until_fixpoint 'aux [gh][gw]
+      (cells: *[gh][gw](cell aux))
+      : *[gh][gw](cell aux) =
+    let (cells, _n_calculated, _) =
+      -- FIXME: In the best case we only need to run a single iteration of this.
+      -- In the worst case we need to run this as many times as there are cells,
+      -- only updating a single cell on every iteration (inherently sequential
+      -- workload).  This is potentially wasteful (at least on non-GPUs) as we
+      -- could accomplish the same thing with a sequential loop with finely tuned
+      -- checking order.  We would probably need a separate array of pre-computed
+      -- sorted grid indexes to accomplish this.  However, this worst-case
+      -- handling could negatively effect the potential best case performance.
+      -- Maybe there's a balance somewhere.
+      loop (cells, n_calculated_prev, running) = (cells, 0, true) while running
+      do let cells' = update_can_be_moved_to_from cells
+         let n_calculated = i64.sum (map (\cell -> i64.bool (cell.can_be_moved_to_from.calculated)) (flatten cells'))
+         in (cells', n_calculated, n_calculated != n_calculated_prev)
+    in cells
+
   def move_and_reset_cells 'aux [gh][gw]
       (choose_direction: i64 -> i64 -> cell aux -> (rng, direction flow))
       (aux_dummy_element: aux)
@@ -156,30 +175,12 @@ module stepper_quick = {
       (aux_dummy_element: aux)
       (cells: *[gh][gw](cell aux))
       : (*[gh][gw](cell aux), [](cell_leak aux)) =
-    let cells = stepper_general.update_can_be_moved_to_from cells
+    let cells = stepper_general.move_until_fixpoint cells
+    -- let cells = stepper_general.update_can_be_moved_to_from cells
     in stepper_general.move_and_reset_cells choose_direction aux_dummy_element cells
 }
 
 module stepper_perfect = {
-  local def move_until_fixpoint 'aux [gh][gw]
-      (cells: *[gh][gw](cell aux))
-      : *[gh][gw](cell aux) =
-    let (cells, _n_calculated, _) =
-      -- FIXME: In the best case we only need to run a single iteration of this.
-      -- In the worst case we need to run this as many times as there are cells,
-      -- only updating a single cell on every iteration (inherently sequential
-      -- workload).  This is potentially wasteful (at least on non-GPUs) as we
-      -- could accomplish the same thing with a sequential loop with finely tuned
-      -- checking order.  We would probably need a separate array of pre-computed
-      -- sorted grid indexes to accomplish this.  However, this worst-case
-      -- handling could negatively effect the potential best case performance.
-      -- Maybe there's a balance somewhere.
-      loop (cells, n_calculated_prev, running) = (cells, 0, true) while running
-      do let cells' = stepper_general.update_can_be_moved_to_from cells
-         let n_calculated = i64.sum (map (\cell -> i64.bool (cell.can_be_moved_to_from.calculated)) (flatten cells'))
-         in (cells', n_calculated, n_calculated != n_calculated_prev)
-    in cells
-
   local def resolve_cycles 'aux [n_cycle_checks][gh][gw]
       (cycle_checks: [n_cycle_checks][gh][gw](direction flow))
       (cells: *[gh][gw](cell aux))
@@ -302,7 +303,7 @@ module stepper_perfect = {
       (aux_dummy_element: aux)
       (cells: *[gh][gw](cell aux))
       : (*[gh][gw](cell aux), [](cell_leak aux)) =
-    let cells = move_until_fixpoint cells
+    let cells = stepper_general.move_until_fixpoint cells
     let cells = resolve_cycles cycle_checks cells
     in stepper_general.move_and_reset_cells choose_direction aux_dummy_element cells
 }
