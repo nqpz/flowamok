@@ -71,34 +71,37 @@ local module stepper_general = {
                                   else (y, x - i64.i8 cell.underlying.direction.x)
            in if in_bounds y_prev x_prev
               then let cell_prev = cells[y_prev, x_prev]
-                   let (flow_y_ok, flow_y_ok_isolated) =
-                     if cell.underlying.direction.y != 0 &&
-                        in_bounds (y + i64.i8 cell.underlying.direction.y) x
-                     then let cell_next = cells[y + i64.i8 cell.underlying.direction.y, x]
-                          let ok_base = cell_next.underlying.direction.y == cell.underlying.direction.y
-                          in (ok_base, ok_base ||
-                                       (cell_next.underlying.direction.y == 0 && cell_next.underlying.direction.x == 0))
-                     else (false, false)
-                   let (flow_x_ok, flow_x_ok_isolated) =
-                     if cell.underlying.direction.x != 0 &&
-                        in_bounds y (x + i64.i8 cell.underlying.direction.x)
-                     then let cell_next = cells[y, x + i64.i8 cell.underlying.direction.x]
-                          let ok_base = cell_next.underlying.direction.x == cell.underlying.direction.x
-                          in (ok_base, ok_base ||
-                                       (cell_next.underlying.direction.y == 0 && cell_next.underlying.direction.x == 0))
-                     else (false, false)
-                   let (rng, direction) =
-                     if flow_y_ok && flow_x_ok
-                     then choose_direction y x cell
-                     else if !flow_x_ok && flow_y_ok_isolated
-                     then (cell.underlying.rng, {y=cell.underlying.direction.y, x=0})
-                     else if !flow_y_ok && flow_x_ok_isolated
-                     then (cell.underlying.rng, {y=0, x=cell.underlying.direction.x})
-                     else (cell.underlying.rng, cell_prev.direction)
-                   in cell with color = cell_prev.color
-                           with aux = cell_prev.aux
-                           with direction = direction
-                           with underlying.rng = rng
+                   in if (cell.can_be_moved_to_from.direction.y && cell_prev.underlying.direction.y == cell.underlying.direction.y)
+                         || (cell.can_be_moved_to_from.direction.x && cell_prev.underlying.direction.x == cell.underlying.direction.x)
+                      then let (flow_y_ok, flow_y_ok_isolated) =
+                             if cell.underlying.direction.y != 0 &&
+                                in_bounds (y + i64.i8 cell.underlying.direction.y) x
+                             then let cell_next = cells[y + i64.i8 cell.underlying.direction.y, x]
+                                  let ok_base = cell_next.underlying.direction.y == cell.underlying.direction.y
+                                  in (ok_base, ok_base ||
+                                               (cell_next.underlying.direction.y == 0 && cell_next.underlying.direction.x == 0))
+                             else (false, false)
+                           let (flow_x_ok, flow_x_ok_isolated) =
+                             if cell.underlying.direction.x != 0 &&
+                                in_bounds y (x + i64.i8 cell.underlying.direction.x)
+                             then let cell_next = cells[y, x + i64.i8 cell.underlying.direction.x]
+                                  let ok_base = cell_next.underlying.direction.x == cell.underlying.direction.x
+                                  in (ok_base, ok_base ||
+                                               (cell_next.underlying.direction.y == 0 && cell_next.underlying.direction.x == 0))
+                             else (false, false)
+                           let (rng, direction) =
+                             if flow_y_ok && flow_x_ok
+                             then choose_direction y x cell
+                             else if !flow_x_ok && flow_y_ok_isolated
+                             then (cell.underlying.rng, {y=cell.underlying.direction.y, x=0})
+                             else if !flow_y_ok && flow_x_ok_isolated
+                             then (cell.underlying.rng, {y=0, x=cell.underlying.direction.x})
+                             else (cell.underlying.rng, cell_prev.direction)
+                           in cell with color = cell_prev.color
+                                   with aux = cell_prev.aux
+                                   with direction = direction
+                                   with underlying.rng = rng
+                      else cell
               else cell
       else if in_bounds y_next x_next
       then let cell_next = cells[y_next, x_next]
