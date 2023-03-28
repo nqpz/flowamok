@@ -260,12 +260,13 @@ module t_cross: scenario = {
   def name () = "t cross"
 
   def init [h][w] (grid: *[h][w]cell): *[h][w]cell =
-    let grid = add_line_horizontal 25 0 10 1 grid
-    let grid = add_line_horizontal 24 10 30 1 grid
-    let grid = add_line_horizontal 26 10 30 1 grid
-    let grid = add_line_vertical 25 26 10 1 grid
-    let grid = add_line_vertical 24 25 10 (-1) grid
-    let grid = add_cell 25 0 argb.magenta {y=0, x=1} grid
+    let y = 25
+    let grid = add_line_horizontal y 0 10 1 grid
+    let grid = add_line_horizontal (y - 1) 10 30 1 grid
+    let grid = add_line_horizontal (y + 1) 10 30 1 grid
+    let grid = add_line_vertical y (y + 1) 10 1 grid
+    let grid = add_line_vertical (y - 1) y 10 (-1) grid
+    let grid = add_cell y 0 argb.magenta {y=0, x=1} grid
     in grid
 
   def step [h][w] (grid: *[h][w]cell) (_steps: i64) (rng: rng): (rng, bool, *[h][w]cell) =
