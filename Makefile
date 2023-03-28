@@ -3,7 +3,7 @@ LYS_FRONTEND?=sdl
 
 -include custom.mk
 
-all: explorer/explorer designer/designer README.md
+all: explorer/explorer designer/designer
 
 .PHONY: explorer/explorer
 explorer/explorer:
