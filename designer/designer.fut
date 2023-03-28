@@ -103,7 +103,7 @@ module lys: lys with text_content = text_content = {
     let (gy0', gy1') = if gy0 < gy1 then (gy0, gy1) else (gy1, gy0)
     let (gx0', gx1') = if gx0 < gx1 then (gx0, gx1) else (gx1, gx0)
     let grid = if gx0 != gx1
-               then add_line_horizontal gy0' gx0' gx1' (i8.i64 (i64.sgn (gx1 - gx0))) grid
+               then add_line_horizontal gy0 gx0' gx1' (i8.i64 (i64.sgn (gx1 - gx0))) grid
                else grid
     let grid = if gy0 != gy1
                then add_line_vertical gy0' gy1' gx1 (i8.i64 (i64.sgn (gy1 - gy0))) grid
