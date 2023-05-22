@@ -12,10 +12,9 @@ def create_cell 'aux (aux: aux) (rng: rng): cell aux =
    aux=aux}
 
 def create_grid 'aux (gh: i64) (gw: i64) (aux: aux) (rng: rng): (rng, *[gh][gw](cell aux)) =
-  let n = gh * gw
-  let rngs = rnge.split_rng n rng
+  let rngs = rnge.split_rng (gh * gw) rng
   let cells = map (create_cell aux) rngs
-  in (rnge.join_rng rngs, unflatten gh gw cells)
+  in (rnge.join_rng rngs, unflatten cells)
 
 def add_line_vertical 'aux [gh][gw] (y_start: i64) (y_end: i64) (x: i64) (flow: flow) (cells: *[gh][gw](cell aux)):
                       *[gh][gw](cell aux) =

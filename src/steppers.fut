@@ -64,6 +64,14 @@ local module stepper_general = {
     let in_bounds = in_bounds gh gw
     let cell = cells[y, x]
     let (y_next, x_next) = (y + i64.i8 cell.direction.y, x + i64.i8 cell.direction.x)
+    let handle_cell_moved_to_cell_next () =
+      if in_bounds y_next x_next
+      then let cell_next = cells[y_next, x_next]
+           in if (cell_next.can_be_moved_to_from.direction.y && cell.underlying.direction.y != 0) ||
+                 (cell_next.can_be_moved_to_from.direction.x && cell.underlying.direction.x != 0)
+              then cell with direction = empty_direction 0
+              else cell
+      else cell with direction = empty_direction 0
     let cell' =
       if cell.can_be_moved_to_from.direction.y || cell.can_be_moved_to_from.direction.x
       then let (y_prev, x_prev) = if cell.can_be_moved_to_from.direction.y
@@ -71,8 +79,9 @@ local module stepper_general = {
                                   else (y, x - i64.i8 cell.underlying.direction.x)
            in if in_bounds y_prev x_prev
               then let cell_prev = cells[y_prev, x_prev]
-                   in if (cell.can_be_moved_to_from.direction.y && cell_prev.underlying.direction.y == cell.underlying.direction.y)
-                         || (cell.can_be_moved_to_from.direction.x && cell_prev.underlying.direction.x == cell.underlying.direction.x)
+                   let y_move_ok = cell.can_be_moved_to_from.direction.y && cell_prev.underlying.direction.y != 0 && cell_prev.underlying.direction.y == cell.underlying.direction.y
+                   let x_move_ok = cell.can_be_moved_to_from.direction.x && cell_prev.underlying.direction.x != 0 && cell_prev.underlying.direction.x == cell.underlying.direction.x
+                   in if y_move_ok || x_move_ok
                       then let (flow_y_ok, flow_y_ok_isolated) =
                              if cell.underlying.direction.y != 0 &&
                                 in_bounds (y + i64.i8 cell.underlying.direction.y) x
@@ -101,15 +110,9 @@ local module stepper_general = {
                                    with aux = cell_prev.aux
                                    with direction = direction
                                    with underlying.rng = rng
-                      else cell
+                      else handle_cell_moved_to_cell_next ()
               else cell
-      else if in_bounds y_next x_next
-      then let cell_next = cells[y_next, x_next]
-           in if (cell_next.can_be_moved_to_from.direction.y && cell.direction.y != 0) ||
-                 (cell_next.can_be_moved_to_from.direction.x && cell.direction.x != 0)
-              then cell with direction = empty_direction 0
-              else cell
-      else cell with direction = empty_direction 0
+      else handle_cell_moved_to_cell_next ()
     let cell_leak =
       if cell.direction != empty_direction 0 && in_bounds y_next x_next
       then let cell_next = cells[y_next, x_next]
@@ -131,7 +134,7 @@ local module stepper_general = {
       : (*[gh][gw](cell aux), [](cell_leak aux)) =
     let (cells, cell_leaks) = unzip (flatten (tabulate_2d gh gw (move_cell cells choose_direction)))
     let cell_leaks = all_somes (copy cell_leaks) (cell_leak_dummy_element aux_dummy_element)
-    let cells = unflatten gh gw cells
+    let cells = unflatten cells
     in (cells, cell_leaks)
 
   local def reset_cells 'aux [gh][gw]
@@ -179,7 +182,6 @@ module stepper_quick = {
       (cells: *[gh][gw](cell aux))
       : (*[gh][gw](cell aux), [](cell_leak aux)) =
     let cells = stepper_general.move_until_fixpoint cells
-    -- let cells = stepper_general.update_can_be_moved_to_from cells
     in stepper_general.move_and_reset_cells choose_direction aux_dummy_element cells
 }
 
@@ -188,11 +190,10 @@ module stepper_perfect = {
       (cycle_checks: [n_cycle_checks][gh][gw](direction flow))
       (cells: *[gh][gw](cell aux))
       : *[gh][gw](cell aux) =
-    let n_cells = gh * gw
     let grids_checked =
       map (\cycle_check_grid ->
-             let cells_flat = flatten_to n_cells cells
-             let checks_flat = flatten_to n_cells cycle_check_grid
+             let cells_flat = flatten cells
+             let checks_flat = flatten cycle_check_grid
              in if all (\(cell: cell aux, check: direction flow) ->
                           (check.y == 0 && check.x == 0) || (!cell.can_be_moved_to_from.calculated &&
                                                              cell.direction == check))
@@ -209,8 +210,8 @@ module stepper_perfect = {
                                        else cell with can_be_moved_to_from.direction.y = cell.underlying.direction.y != 0
                                                  with can_be_moved_to_from.direction.x = cell.underlying.direction.x != 0
                                else cell)
-                            cells_flat checks_flat (flatten_to n_cells (tabulate_2d gh gw (\y x -> (y, x))))
-                     in unflatten gh gw cells_flat
+                            cells_flat checks_flat (flatten (tabulate_2d gh gw (\y x -> (y, x))))
+                     in unflatten cells_flat
                 else cells) cycle_checks
     let merge_checked (grid1: [gh][gw](cell aux)) (grid2: [gh][gw](cell aux)): [gh][gw](cell aux) =
       let merge_cell (cell1: cell aux) (cell2: cell aux): cell aux =
