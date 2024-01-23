@@ -112,7 +112,7 @@ module lys: lys with text_content = text_content = {
     let steps = copy s.steps
     let (rng, grid, cycle_checks, step_cur, n_cell_leaks) =
       loop (rng, grid, cycle_checks, step_cur, n_cell_leaks) =
-        (s.rng, copy grids[s.scenario_id], cycle_checks, steps[s.scenario_id], 0)
+        (s.rng, copy grids[s.scenario_id], copy cycle_checks, copy steps[s.scenario_id], 0)
       for _i < n_steps
       do let (grid, cell_leaks) =
            if s.perfect_simulation

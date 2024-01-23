@@ -49,7 +49,7 @@ module mk_scenario_helper_exposed (scenario_helper_helper: scenario_helper_helpe
     (scenario_helper_helper.scenario_helper sid grid (dummy_grid gh gw) 0 (dummy_rng ())).0
 
   let step [gh][gw] (sid: i64) (grid: *[gh][gw]cell) (steps: i64) (rng: rng): (rng, bool, *[gh][gw]cell) =
-    (scenario_helper_helper.scenario_helper sid (dummy_grid gh gw) grid steps rng).1
+    copy (scenario_helper_helper.scenario_helper sid (dummy_grid gh gw) grid steps rng).1
 
   let n_scenarios: i64 =
     loop i = 0
